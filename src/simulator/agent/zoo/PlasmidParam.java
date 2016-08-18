@@ -190,17 +190,19 @@ public class PlasmidParam extends ActiveParam
 	/**
 	 * \brief Check if a potential host is compatible with a plasmid of this
 	 * species.
+	 * Update: Take Entry Exclusion System into consideration. If the same plasmid 
+	 * already exists in the targetRecipient, then don't transfer. 
 	 * 
 	 * @param targetRecipient PlasmidBac to check compatibility with.
-	 * @return boolean: true if target is compatible, false if not.
+	 * @return boolean: true if target is compatible, false if not. 
 	 */
 	public boolean isCompatible(PlasmidBac targetRecipient)
 	{
 		if ( ! hostCompatibilityMarkers.contains(targetRecipient.getName()) )
 			return false;
 		for ( Plasmid p : targetRecipient.getPlasmidsHosted() )
-			if ( ! plasmidCompatibilityMarkers.contains(p.getName()) )
+			if ( (! plasmidCompatibilityMarkers.contains(p.getName())) || name.equals(p.getName()))
 				return false;
-		return true;
+		return true;    
 	}
 }
