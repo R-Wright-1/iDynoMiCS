@@ -452,7 +452,7 @@ public class Simulator
 	 * simulation timer is initialised. Finally, a data dictionary is created
 	 * for use by other utility methods within the simulation.
 	 */
-	public void createSimulator() 
+	public void createSimulator()
 	{
 		LogFile.writeLogAlways("\tCreating simulator: ");
 		XMLParser localRoot = _protocolFile.getChildParser("simulator");
@@ -485,8 +485,10 @@ public class Simulator
 			agentTimeStep = localRoot.getParamTime("agentTimeStep");
 		else
 		{
-			LogFile.writeLogAlways("No agentTimeStep found! Exiting...");
-			System.exit(-1);
+			// Set agentTimeStep to NaN and have it fixed later when used in AgentContainer
+			// Did not find a way to set from timeStepIni in protocol file
+			// or SimTimer.getCurrentTimeStep() at this stage
+			agentTimeStep = Double.NaN; //localRoot.getParamTime("timeStepIni");
 		}
 		/*
 		 * Read in the method of attachment of agents - whether substratum or

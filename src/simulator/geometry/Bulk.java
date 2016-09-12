@@ -191,7 +191,7 @@ public class Bulk
 		_sIn = ExtraMath.newDoubleArray(aSim.soluteDic.size());
 		_sPulse = ExtraMath.newDoubleArray(aSim.soluteDic.size());
 		
-		// Parameter D is the Reactor Dilusion rate, used if isConstand is set to false
+		// Parameter D is the Reactor Dilution rate, used if isConstant is set to false
 		_D = aBulkRoot.getParamTime("D");
 	
 
@@ -204,7 +204,7 @@ public class Bulk
 			
 			// Get the Sbulk value for this solute - the initial bulk concentration of this solute
 			_bulkValue[soluteIndex] = parser.getParamConcn("Sbulk");
-			LogFile.writeLog("Setting initial "+_bulkValue[soluteIndex]);
+			LogFile.writeLog("Setting initial bulk concn "+_bulkValue[soluteIndex]);
 			
 			// Note in the boolean array that this solute is present in the bulk if concentration value is over zero
 			if ( Double.isNaN(_bulkValue[soluteIndex]) )

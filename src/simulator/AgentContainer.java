@@ -295,7 +295,7 @@ public class AgentContainer
 		
 		// Record values at the beginning
 		int nBirth = 0;
-		int nAgent = agentList.size();
+		int nAgentLastStep = agentList.size(); //Qian: change this parameter's name from nAgent to nAgentLastStep
 		double dt = 0.0;
 		double elapsedTime = 0.0;
 		double globalTimeStep = SimTimer.getCurrentTimeStep();
@@ -338,16 +338,9 @@ public class AgentContainer
 
 			if ( Simulator.isChemostat )
 				agentFlushedAway(dt);
+			
+			// Qian: Calculation of nBirth and update of nAgentLastStep are moved before results printed.
 
-
-			// Add and remove agents
-			nBirth += agentList.size() - nAgent;
-
-			//sonia 26.04.2010
-			//commented out removeAllDead
-			// this call is now made at the end of the step in Simulator
-			//nDead += removeAllDead();
-			nAgent = agentList.size();
 
 			// NOW DEAL WITH DEATH IN THIS AGENT TIMESTEP
 			// REMOVE THESE FROM THE GRID IF DEAD
@@ -434,13 +427,23 @@ public class AgentContainer
 				
 		}
 		
+		// Add and remove agents
+		// Qian: correct the calculation of nBirth from numbers of changes to net Birth. 
+		nBirth = agentList.size() + _agentToKill.size() - nAgentLastStep;
+
+		//sonia 26.04.2010
+		//commented out removeAllDead
+		// this call is now made at the end of the step in Simulator
+		//nDead += removeAllDead();
+		nAgentLastStep = agentList.size();
+		
 		// OUTPUT THE COUNT STATISTICS
 		LogFile.chronoMessageOut("Agents stepped/dead/born: " + nAgent0 + "/"
 				+ _agentToKill.size() + "/" + nBirth);
 
 		
-		nAgent = agentList.size();
-		if (maxPopLimit > 0 && nAgent >= maxPopLimit)
+		nAgentLastStep = agentList.size();
+		if (maxPopLimit > 0 && nAgentLastStep >= maxPopLimit)
 			aSim.continueRunning = false;
 	}
 

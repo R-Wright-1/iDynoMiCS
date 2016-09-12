@@ -72,19 +72,17 @@ public class DiscreteVector implements Cloneable, Serializable
 	{
 		try
 		{
-			i = coordinatesRoot.getAttributeInt("i");
-			j = coordinatesRoot.getAttributeInt("j");
-			k = coordinatesRoot.getAttributeInt("k");
+			// Even when we use i, j, k and integers in the protocol file, we need to use Integer.parseInt
+			i = Integer.parseInt(coordinatesRoot.getAttribute("i"));
+			j = Integer.parseInt(coordinatesRoot.getAttribute("j"));
+			k = Integer.parseInt(coordinatesRoot.getAttribute("k"));
 		}
 		catch (Exception e)
 		{
 			i = Integer.parseInt(coordinatesRoot.getAttribute("x"));
 			j = Integer.parseInt(coordinatesRoot.getAttribute("y"));
 			k = Integer.parseInt(coordinatesRoot.getAttribute("z"));
-			LogFile.writeLogAlways("----------------------------------------");
-			LogFile.writeLogAlways("Please give discrete vectors as i, j, k!");
-			LogFile.writeLogAlways("x, y, z should be for continuous vectors");
-			LogFile.writeLogAlways("----------------------------------------");
+
 		}
 	}
 	
