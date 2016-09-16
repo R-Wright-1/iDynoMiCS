@@ -744,7 +744,7 @@ public class AgentContainer
 		if (EROSIONMETHOD)
 		{
 			Double temp = Dfactor*agentTimeStep*agentList.size() + tallyVariable;
-			agentsToDilute = temp.intValue();
+			agentsToDilute = temp.intValue(); /* this is floor() */
 			tallyVariable = temp % 1;
 		}
 		else
@@ -759,7 +759,7 @@ public class AgentContainer
 			agentsToDilute = Math.max(agentList.size() - 1000, 0);
 		}
 		
-		for (SpecialisedAgent anAgent : agentList.subList(0, agentsToDilute))
+		for (SpecialisedAgent anAgent : agentList.subList(0, agentsToDilute)) // from (0 inclusive) to agentsToDilute (exclusive)
 		{
 			anAgent.isDead = true;
 			anAgent.death = "dilution";
