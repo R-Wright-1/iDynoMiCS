@@ -156,7 +156,7 @@ public abstract class Agent implements Cloneable
 	 */
 	public void step()
 	{
-		// Qian: avoid newborn agents to be stepped after birth
+		// Qian 09/2016: avoid newborn agents to be stepped after birth
 		// since the mother cell has already grown this step
 		if(SimTimer.getCurrentTime().equals(_birthday))
 		{
@@ -165,7 +165,7 @@ public abstract class Agent implements Cloneable
 		}
 		else
 		{
-			// Qian: moved _lastStep = ... after internalStep()
+			// Qian 09/2016: moved _lastStep = ... after internalStep()
 			// for testing of stepping in subclasses had to avoid updating _lastStep until internalStep() finished
 			internalStep();
 			_lastStep = SimTimer.getCurrentIter();

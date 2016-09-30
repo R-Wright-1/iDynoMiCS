@@ -295,7 +295,7 @@ public class AgentContainer
 		// Record values at the beginning
 		int nDeath = _agentToKill.size();
 		int nBirth = 0;
-		int nAgentLastStep = agentList.size(); // Qian: changed this variable name from nAgent to nAgentLastStep
+		int nAgentLastStep = agentList.size(); // Qian 09/2016: changed this variable name from nAgent to nAgentLastStep
 		double dt = 0.0;
 		double elapsedTime = 0.0;
 		double globalTimeStep = SimTimer.getCurrentTimeStep();
@@ -324,7 +324,7 @@ public class AgentContainer
 			if ( ! Simulator.isChemostat )
 				followPressure();
 			
-			// Qian: This for loop will also iterate over new born cells
+			// Qian 09/2016: This for loop will also iterate over new born cells
 			// as these are inserted into the list and agentList.size() appears to be
 			// evaluated every iteration of the loop, not only at the first time
 			for ( int i = 0; i < agentList.size(); i++ ){
@@ -344,7 +344,7 @@ public class AgentContainer
 			if ( Simulator.isChemostat )
 				agentFlushedAway(dt);
 			
-			// Qian: Calculation of nBirth and update of nAgentLastStep was here
+			// Qian 09/2016: Calculation of nBirth and update of nAgentLastStep was here
 			// but had to be moved down just before results are printed.
 
 			// NOW DEAL WITH DEATH IN THIS AGENT TIMESTEP
@@ -432,11 +432,11 @@ public class AgentContainer
 				
 		}
 		
-		// Qian: previously, nDeath was just _agentToKill.size() which accumulates agents over several steps until cleared after agents are output every output cycle
+		// Qian 09/2016: previously, nDeath was just _agentToKill.size() which accumulates agents over several steps until cleared after agents are output every output cycle
 		// Now nDeath is the number of agents that died this timestep only
 		nDeath = _agentToKill.size() - nDeath;
 		// Add and remove agents
-		// Qian: corrected the calculation of nBirth to be the number of agents born this timestep rather than the net change in numbers 
+		// Qian 09/2016: corrected the calculation of nBirth to be the number of agents born this timestep rather than the net change in numbers 
 		nBirth = agentList.size() + nDeath - nAgentLastStep;
 
 		//sonia 26.04.2010
