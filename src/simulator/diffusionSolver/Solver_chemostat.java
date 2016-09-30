@@ -516,8 +516,10 @@ public class Solver_chemostat extends DiffusionSolver
 		 * Assuming all is well, we then update allSolute to the appropriate
 		 * value.
 		 */
-		for (int iSol = 0; iSol < nSolute; iSol++)
+		for (int iSol = 0; iSol < nSolute; iSol++) {
 			allSolute[iSol].setAllValueAt(y.get(iSol,0));
+			//LogFile.writeLogAlways("At the end of chemostat solver, sub concn is" + y.get(iSol,0));
+		}
 	}
 	
 	/**

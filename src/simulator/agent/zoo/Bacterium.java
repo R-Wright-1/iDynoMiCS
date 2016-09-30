@@ -15,6 +15,7 @@ package simulator.agent.zoo;
 import java.awt.Color;
 import java.math.BigInteger;
 
+import idyno.SimTimer;
 import simulator.agent.*;
 import simulator.geometry.ContinuousVector;
 import simulator.Simulator;
@@ -279,6 +280,8 @@ public class Bacterium extends LocatedAgent implements Cloneable
 		/*
 		 * Compute mass growth over all compartments.
 		 */
+		// Qian: used this to check whether any agents are stepped twice in a timestep, never happened
+		//if (SimTimer.getCurrentIter() == _lastStep) {LogFile.chronoMessageOut("Agent already stepped this iter");}
 		grow();
 		updateSize();
 		/*

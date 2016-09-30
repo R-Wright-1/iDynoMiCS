@@ -292,10 +292,10 @@ public class AgentContainer
 		/* STEP AGENTS ________________________________________________ */
 		LogFile.chronoMessageIn();
 		Collections.shuffle(agentList, ExtraMath.random);
-		
 		// Record values at the beginning
+		int nDeath = _agentToKill.size();
 		int nBirth = 0;
-		int nAgentLastStep = agentList.size(); //Qian: change this parameter's name from nAgent to nAgentLastStep
+		int nAgentLastStep = agentList.size(); // Qian: changed this variable name from nAgent to nAgentLastStep
 		double dt = 0.0;
 		double elapsedTime = 0.0;
 		double globalTimeStep = SimTimer.getCurrentTimeStep();
@@ -324,8 +324,13 @@ public class AgentContainer
 			if ( ! Simulator.isChemostat )
 				followPressure();
 			
-			for ( int i = 0; i < agentList.size(); i++ )
+			// Qian: This for loop will also iterate over new born cells
+			// as these are inserted into the list and agentList.size() appears to be
+			// evaluated every iteration of the loop, not only at the first time
+			for ( int i = 0; i < agentList.size(); i++ ){
 				agentList.get(i).step();
+			}
+
 			/*
 			 * TODO Rob 16Apr2015: Java is complaining about
 			 * "java.util.ConcurrentModificationException"
@@ -339,8 +344,8 @@ public class AgentContainer
 			if ( Simulator.isChemostat )
 				agentFlushedAway(dt);
 			
-			// Qian: Calculation of nBirth and update of nAgentLastStep are moved before results printed.
-
+			// Qian: Calculation of nBirth and update of nAgentLastStep was here
+			// but had to be moved down just before results are printed.
 
 			// NOW DEAL WITH DEATH IN THIS AGENT TIMESTEP
 			// REMOVE THESE FROM THE GRID IF DEAD
@@ -375,7 +380,7 @@ public class AgentContainer
 		if( ! Simulator.isChemostat )
 		{
 			//sonia 26.04.2010
-			//care as been take so that the death agents are removed from the 
+			//care has been taken so that the dead agents are removed from the 
 			// _agentList preventing their participation in the shoving process 			
 			// spring and then shove only particles
 			LogFile.chronoMessageIn("Shoving");
@@ -427,9 +432,12 @@ public class AgentContainer
 				
 		}
 		
+		// Qian: previously, nDeath was just _agentToKill.size() which accumulates agents over several steps until cleared after agents are output every output cycle
+		// Now nDeath is the number of agents that died this timestep only
+		nDeath = _agentToKill.size() - nDeath;
 		// Add and remove agents
-		// Qian: correct the calculation of nBirth from numbers of changes to net Birth. 
-		nBirth = agentList.size() + _agentToKill.size() - nAgentLastStep;
+		// Qian: corrected the calculation of nBirth to be the number of agents born this timestep rather than the net change in numbers 
+		nBirth = agentList.size() + nDeath - nAgentLastStep;
 
 		//sonia 26.04.2010
 		//commented out removeAllDead
@@ -439,7 +447,7 @@ public class AgentContainer
 		
 		// OUTPUT THE COUNT STATISTICS
 		LogFile.chronoMessageOut("Agents stepped/dead/born: " + nAgent0 + "/"
-				+ _agentToKill.size() + "/" + nBirth);
+				+ nDeath + "/" + nBirth);
 
 		
 		nAgentLastStep = agentList.size();
@@ -716,6 +724,7 @@ public class AgentContainer
 		*/
 		
 		_agentToKill.clear();
+		
 		return nDead;
 	}
 
