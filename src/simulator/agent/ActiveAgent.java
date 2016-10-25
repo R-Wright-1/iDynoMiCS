@@ -97,9 +97,14 @@ public abstract class ActiveAgent extends SpecialisedAgent implements HasReactio
 	public Double[] particleMass;
 	
 	/**
-	 * Sum of masses of all particles
+	 * Sum of masses of all particles excluding capsule
 	 */
-	protected Double _totalMass;
+	protected Double _mass = 0.0;
+	
+	/**
+	 * Sum of masses of all particles including capsule if it exists
+	 */
+	protected Double _totalMass = 0.0;
 
 	/**
 	 * \brief Creates an ActiveAgent object and initialises the object in

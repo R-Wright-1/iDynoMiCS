@@ -389,23 +389,30 @@ public class Bacterium extends LocatedAgent implements Cloneable
 	/* _______________ RADIUS, MASS AND VOLUME _____________________ */
 
 	/**
-	 * \brief Update the volume of this agent by examining the particle
-	 * density.
+	 * \brief Update the masses and volumes of this agent by summing over all particles and considering particle
+	 * densities.
 	 */
 	@Override
-	public void updateVolume()
+	public void updateMassAndVolume()
 	{
 		Double[] density = getSpeciesParam().particleDensity;
+		Double tempMass = 0.0;
 		_totalVolume = 0.0;
-		for ( int i = 0; i < particleMass.length; i++ )
-			_totalVolume += particleMass[i] / density[i];
+		_totalMass = 0.0;
+		for ( int i = 0; i < particleMass.length; i++ ) {
+			tempMass = particleMass[i];
+			_totalMass += tempMass;
+			_totalVolume += tempMass/ density[i];
+		}
   		/*
   		 * Compute volume with or without EPS capsule.
   		 */
+		_mass = _totalMass;
 		_volume = _totalVolume;
 		if ( _hasEps )
 		{
 			int i = getIndexCapsule();
+			_mass -= particleMass[i];
   			_volume -= (particleMass[i] / density[i]);
   		}
   	}

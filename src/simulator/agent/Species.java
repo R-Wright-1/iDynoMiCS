@@ -229,18 +229,20 @@ public class Species implements Serializable
 	 * \brief Used in 'one-time' attachment scenarios, where clones of the
 	 * progenitor are created in the birth area of the substratum.
 	 * 
-	 * @param spRoot The XML mark-up group for a particular species being
+	 * @param initAreaRoot The XML mark-up group for the initArea of a particular species being
 	 * created.
+	 * @param aSpRoot The XML mark-up group for a particular species being created.
 	 */
-	public void createPop(XMLParser spRoot) 
+	public void createPop(XMLParser aSpRoot, XMLParser initAreaRoot) 
 	{
-		int howMany = spRoot.getAttributeInt("number");
+		//Qian 10.2016: Add targeted species' root to this function and this will be used later when checking the existence of plasmid. 
+		int howMany = initAreaRoot.getAttributeInt("number");
 		if ( howMany <= 0 )
 			return;
 	
 		// Define the birth area - this is taken from the coordinates tags in the protocol file
 		// (Nov13) OR if an initial area is not declared, this is the whole Y and Z of the domain with a height of 1.
-		ContinuousVector[] _initArea = defineSquareArea(spRoot);
+		ContinuousVector[] _initArea = defineSquareArea(initAreaRoot);
 		// Create all the required agents
 		ContinuousVector cc = new ContinuousVector();
 
@@ -253,7 +255,7 @@ public class Species implements Serializable
 				
 				// Create the agent at these coordinates
 				if ( _progenitor instanceof PlasmidBac )
-					((PlasmidBac) _progenitor).createNewAgent(cc, spRoot);
+					((PlasmidBac) _progenitor).createNewAgent(cc, initAreaRoot);
 				else
 					((LocatedAgent) _progenitor).createNewAgent(cc);
 						 
@@ -264,13 +266,14 @@ public class Species implements Serializable
 		LogFile.writeLog(howMany+" agents of species "+speciesName+" for one-time attachment successfully created");
 		if ( _progenitor instanceof PlasmidBac )
 		{
-			LinkedList<String> names = spRoot.getChildrenNames("plasmid");
+			LinkedList<String> names = aSpRoot.getChildrenNames("plasmid");
+			LogFile.writeLog("number of plasmids: " + aSpRoot.getChildrenParsers("plasmid").size());
 			String msg = "\t(";
 			if ( names.isEmpty() )
-				msg += "without plasmids";
+				msg += _progenitor.getName() +" without plasmids";
 			else
 			{
-				msg += "with plasmid";
+				msg += _progenitor.getName() +" with plasmids";
 				if ( names.size() > 1)
 					msg += "s";
 				msg += ": "+String.join(", ", names);

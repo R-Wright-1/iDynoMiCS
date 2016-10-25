@@ -290,7 +290,9 @@ public class XMLParser implements Serializable
 	{
 		LinkedList<String> out = new LinkedList<String>();
 		for (XMLParser aChild : getChildrenParsers(childMarkup))
+		{	
 			out.add(aChild.getName());
+		}
 		return out;
 	}
 	

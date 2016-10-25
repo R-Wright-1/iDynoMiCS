@@ -50,12 +50,12 @@ public abstract class LocatedAgent extends ActiveAgent implements Cloneable
 	protected static ContinuousVector  _newLoc = new ContinuousVector();
 	
 	/**
-	 * Radius of this agent.
+	 * Radius of this agent excluding capsule
 	 */
 	protected Double _radius = 0.0;
 	
 	/**
-	 * Cell radius including any capsules.
+	 * Radius of this agent including the capsule if it exists
 	 */
 	protected Double _totalRadius = 0.0;
 	
@@ -70,12 +70,12 @@ public abstract class LocatedAgent extends ActiveAgent implements Cloneable
 	protected Double _myDeathRadius = 0.0;
 	
 	/**
-	 * Volume of this agent.
+	 * Volume of this agent excluding capsule
 	 */
 	protected Double _volume = 0.0;
 	
 	/**
-	 * Cell volume including any capsules.
+	 * Volume of this agent including the capsule if it exists
 	 */
 	protected Double _totalVolume = 0.0;
 	
@@ -302,21 +302,17 @@ public abstract class LocatedAgent extends ActiveAgent implements Cloneable
 	@Override
 	public void updateSize() 
 	{
-		/* 
-		 * Update the totalMass field (sum of the particles masses).
-		 */
-		updateMass();
 		/*
-		 * Check the mass is positive.
+		 * Summing particles masses and volumes considering particles densities
+		 */
+		updateMassAndVolume();
+		/*
+		 * Check total mass is positive
 		 */
 		if ( _totalMass < 0.0 )
-			LogFile.writeLog("Warning: negative mass on agent "+sendName());
+			LogFile.writeLog("Warning: negative _totalMass in agent "+sendName());
 		/*
-		 * Sum of (particles masses / particles density).
-		 */
-		updateVolume();
-		/*
-		 * Compute radius according to the volume.
+		 * Compute _radius and _totalRadius from _volume and _totalVolume
 		 */
 		updateRadius();
 		/*
@@ -940,7 +936,7 @@ public abstract class LocatedAgent extends ActiveAgent implements Cloneable
 	 * 
 	 * Compute the volume on the basis of the mass and density of different compounds defined in the cell
 	 */
-	public void updateVolume()
+	public void updateMassAndVolume()
 	{
 		_volume = 0.0;
 		for (int i = 0; i<particleMass.length; i++) {
@@ -1042,7 +1038,7 @@ public abstract class LocatedAgent extends ActiveAgent implements Cloneable
 	 */
 	public Double getMass(Boolean withCapsule)
 	{
-		return (withCapsule ? _totalMass : _totalMass);
+		return (withCapsule ? _totalMass : _mass);
 	}
 	
 	/**

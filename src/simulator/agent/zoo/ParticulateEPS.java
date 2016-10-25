@@ -324,7 +324,7 @@ public class ParticulateEPS extends LocatedAgent
 	 * Update the volume of this agent by examining the particle density
 	 */
 	@Override
-	public void updateVolume() 
+	public void updateMassAndVolume() 
 	{
 		_volume = 0.0;
 		for (int i = 0; i < particleMass.length - 1; i++)

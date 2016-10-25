@@ -1120,7 +1120,7 @@ public class Simulator
 		for (XMLParser anArea : aSpRoot.getChildrenParsers("initArea"))
 			if (SimTimer.isDuringNextStep(anArea.getParamTime("birthday"))) 
 			{
-				speciesList.get(spIndex).createPop(anArea);
+				speciesList.get(spIndex).createPop(aSpRoot, anArea);
 				creatingAgents = true;
 			}
 		return creatingAgents;

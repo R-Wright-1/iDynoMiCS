@@ -8,6 +8,7 @@ import simulator.agent.ActiveParam;
 import simulator.agent.zoo.PlasmidBac;
 import simulator.agent.Species;
 import utils.LogFile;
+import utils.UnitConverter;
 import utils.XMLParser;
 
 /**
@@ -62,7 +63,12 @@ public class PlasmidParam extends ActiveParam
 	public Double transferProficiency = 1.0;
 	
 	/**
-	 * The maximum scan speed (in cells/hour) of Plasmids of this species.
+	 * Parameter for collision frequency for this plasmid in chemostat simulations
+	 */
+	public double collisionCoeff = 0.1;
+	
+/**
+	 * The maximum scan speed (in cells/hour) for this plasmid in biofilm simulations
 	 */
 	public Double scanSpeed = 10.0;
 	
@@ -84,8 +90,7 @@ public class PlasmidParam extends ActiveParam
 	 * of this species encode for.
 	 */
 	public ArrayList<Integer> reactionsEncoded = new ArrayList<Integer>();
-	
-	
+		
 	/*************************************************************************
 	 * CONSTRUCTORS
 	 ************************************************************************/
@@ -136,6 +141,13 @@ public class PlasmidParam extends ActiveParam
 		tempDbl = getSpeciesParameterTime("scanSpeed",
 											aSpeciesRoot, speciesDefaults);
 		scanSpeed = Double.isFinite(tempDbl) ? tempDbl : scanSpeed;
+		//collisionCoeff
+		LogFile.writeLog("collisionCoeff " + collisionCoeff);
+		StringBuffer tempUnit = new StringBuffer("");
+		tempDbl = aSpeciesRoot.getParamDbl("collisionCoeff", tempUnit);
+		collisionCoeff = tempDbl*UnitConverter.time(tempUnit.toString());
+		LogFile.writeLog("collisionCoeff " + collisionCoeff);				
+				
 		/*
 		 * 
 		 */
@@ -150,14 +162,14 @@ public class PlasmidParam extends ActiveParam
 		tempXML = aSpeciesRoot.getChildrenParsers("compatibleHost");
 		if ( tempXML == null || tempXML.isEmpty() )
 		{
-			//System.out.println("Entering all host compatability markers");
+			//System.out.println("Entering all host compatibility markers");
 			for ( Species spec : aSim.speciesList )
 				if ( spec.getProgenitor() instanceof PlasmidBac )
 					hostCompatibilityMarkers.add( spec.speciesName );
 		}
 		else
 		{
-			//System.out.println("Trying to read in host compatability markers");
+			//System.out.println("Trying to read in host compatibility markers");
 			for ( XMLParser parser : tempXML )
 			{
 				//System.out.println("\tAdding "+parser.getName());
@@ -181,12 +193,21 @@ public class PlasmidParam extends ActiveParam
 		 * 
 		 * TODO check that compatibility goes both ways?
 		 */
-		tempXML = aSpeciesRoot.getChildrenParsers("compatiblePlasmids");
+		tempXML = aSpeciesRoot.getChildrenParsers("compatiblePlasmid");
 		if ( ! (tempXML == null || tempXML.isEmpty()) )
 			for ( XMLParser parser : tempXML )
 				plasmidCompatibilityMarkers.add( parser.getName() );
 	}
 	
+	public boolean isHostCompatible(PlasmidBac targetRecipient)
+	{
+		LogFile.writeLog("targetRecipient.getName() " + targetRecipient.getName());
+		LogFile.writeLog("hostCompatibilityMarkers " + hostCompatibilityMarkers.toString());
+		if ( ! hostCompatibilityMarkers.contains(targetRecipient.getName()) )
+			return false;
+		return true;    
+	}
+
 	/**
 	 * \brief Check if a potential host is compatible with a plasmid of this
 	 * species.

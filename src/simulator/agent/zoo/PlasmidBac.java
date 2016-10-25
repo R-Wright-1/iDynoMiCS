@@ -16,6 +16,7 @@ import simulator.agent.LocatedAgent;
 import simulator.agent.SpecialisedAgent;
 import simulator.agent.Species;
 import simulator.geometry.ContinuousVector;
+import sun.util.logging.resources.logging;
 import utils.ExtraMath;
 import utils.LogFile;
 import utils.XMLParser;
@@ -43,7 +44,7 @@ public class PlasmidBac extends BactEPS
 	/**
 	 * TODO
 	 */
-	private double _chemoScalar;
+	private double _chemoScaler;
 	
 	/*************************************************************************
 	 * CONSTRUCTORS
@@ -80,6 +81,12 @@ public class PlasmidBac extends BactEPS
 		 * Initialisation of the BactEPS, and its superclasses.
 		 */
 		super.initFromProtocolFile(aSimulator, aSpeciesRoot);
+		//Qian 10.2016: add following part. Otherwise, there will be no plasmid since the beginning of simulation.
+		/*
+		 * Create hosted plasmids.
+		 */
+		for (String aSpeciesName : aSpeciesRoot.getChildrenNames("plasmid"))
+			initPlasmid(aSpeciesName);
 		/*
 		 * Genealogy and size management.
 		 */
@@ -112,6 +119,7 @@ public class PlasmidBac extends BactEPS
 		int nCopy, spCounter = 0;
 		for ( String plasmidName : getPotentialPlasmidNames() )
 		{
+			LogFile.writeLog("has been stepped");
 			nCopy = Integer.parseInt(singleAgentData[iDataStart+3*spCounter]);
 			if ( nCopy <= 0 )
 				continue;
@@ -412,10 +420,9 @@ public class PlasmidBac extends BactEPS
 		/*
 		 * Build a neighbourhood including only non-self Bacteria. The methods
 		 * for this differ between chemostat and biofilm simulations:
-		 * -	No point generating the list for each plasmid in the 
-		 * 		chemostat, since all plasmids are treated equally there.
 		 * -	In the biofilm, all non-self Bacteria within reach of the
 		 * 		Plasmid's pilus should be included.
+		 * Need to do this for each plasmid as parameters may differ
 		 * 
 		 * [Rob 31July2016] No need to shuffle this list: 
 		 * LocatedAgent.pickNeighbour() uses a randomly generated value to pick
@@ -423,31 +430,34 @@ public class PlasmidBac extends BactEPS
 		 */
 		HashMap<Bacterium, Double> 
 								potentials = new HashMap<Bacterium, Double>();
-		if ( Simulator.isChemostat )
-			potentials = buildNbh();
+		
 		for ( Plasmid aPlasmid : this._plasmidHosted )
 			if ( aPlasmid.isReadyToConjugate() )
 			{
-				if ( ! Simulator.isChemostat )
-					potentials = buildNbh(aPlasmid.getPilusRange());
+				if ( Simulator.isChemostat )
+					potentials = buildNbh(aPlasmid);
+				else
+					potentials = buildNbh(aPlasmid, aPlasmid.getPilusRange());
+				// searchConjugation called in either case, but differs internally
 				this.searchConjugation(aPlasmid, potentials);
 			}
 	}
 	
 	/**
-	 * \brief Add all non-self Bacteria in the agent grid to the list of
+	 * \brief buildNbh() is the non-spatial version for chemostats.
+	 * Add all non-self Bacteria in the agent grid to the list of
 	 * potential recipients, with equal proportional to their mass.
 	 * 
 	 * TODO [Rob6Aug2015] This is not quite equivalent to Sonia's ODE model:
-	 * there it is assumed that compatability upon collision is assessed 
+	 * there it is assumed that compatibility upon collision is assessed 
 	 * instantaneously. Fixing this would require either: 1) filtering the
-	 * potential recipients below by compatability, whereby losing equivalence
+	 * potential recipients below by compatibility, whereby losing equivalence
 	 * with the biofilm model, or 2) changing the ODE model.
 	 */
-	public HashMap<Bacterium, Double> buildNbh()
+	public HashMap<Bacterium, Double> buildNbh(Plasmid aPlasmid)
 	{
 		HashMap<Bacterium, Double> out = new HashMap<Bacterium, Double>();
-		this._chemoScalar = 0.0;
+		this._chemoScaler = 0.0;
 		/*
 		 * Loop through all SpecialisedAgents in the agentGrid, adding only
 		 * Bacteria and subclasses (e.g. PlasmidBac) to the output. Count 
@@ -459,24 +469,28 @@ public class PlasmidBac extends BactEPS
 			{
 				bac = (Bacterium) aSA;
 				out.put(bac, 1.0);
-				this._chemoScalar += bac.getMass(false);
+				this._chemoScaler += bac.getMass(false);
 			}
+		LogFile.writeLog("chemoScaler " + this._chemoScaler);
 		/*
-		 * Scale the probability of each by its mass.
+		 * Scale the probability of each by _chemoScaler, which at this moment is the sum of all other Bacterium masses
 		 */
-		scaleProbabilities(out, this._chemoScalar);
+		scaleProbabilities(out, this._chemoScaler);
 		/*
-		 * Finally, the chemostat collision scalar is proportional to the
+		 * Finally, the chemostat collision scaler is proportional to the
 		 * concentration of potentials multiplied by the concentration of
 		 * this cell. Concentrations in fg/um3 = g/L.
 		 */
-		this._chemoScalar *= getSpeciesParam().collisionCoeff * 
-			this.getMass(false) * Math.pow(_agentGrid.getResolution(), -6.0);
+		Double tmpCollCoeff = aPlasmid.getSpeciesParam().collisionCoeff;
+		this._chemoScaler *= tmpCollCoeff * 
+			this.getMass(false) * Math.pow(_agentGrid.getResolution(), -6.0);//jan testing, was -6
+		LogFile.writeLog("chemoScaler " + this._chemoScaler + "  collisionCoeff " + tmpCollCoeff);
 		return out;
 	}
 	
 	/**
-	 * \brief Add all non-self Bacteria within reach of this to a HashMap of
+	 * \brief This is the spatial version of buildNbh() for the biofilm.
+	 * Add all non-self Bacteria within reach of this to a HashMap of
 	 * potential recipients.
 	 * 
 	 * <p>The double values in the HashMap correspond to the Bacterium's 
@@ -491,7 +505,7 @@ public class PlasmidBac extends BactEPS
 	 * surface-surface distance for another Bacterium to be considered a
 	 * neighbor.
 	 */
-	public HashMap<Bacterium, Double> buildNbh(double nbhRadius)
+	public HashMap<Bacterium, Double> buildNbh(Plasmid aPlasmid, double nbhRadius)
 	{
 		HashMap<Bacterium, Double> out = new HashMap<Bacterium, Double>();
 		/*
@@ -560,8 +574,8 @@ public class PlasmidBac extends BactEPS
 	 */
 	private void scaleProbabilities(HashMap<Bacterium, Double> hm, double sum)
 	{
-		final double scalar = 1.0/sum;
-		hm.replaceAll((b, p) -> {return p*scalar;});
+		final double scaler = 1.0/sum;
+		hm.replaceAll((b, p) -> {return p*scaler;});
 	}
 	
 	/**
@@ -622,12 +636,15 @@ public class PlasmidBac extends BactEPS
 		 * Find a recipient(s) and try to send them a plasmid.
 		 */
 		while ( aPlasmid.canScan() )
+		{
+			LogFile.writeLog("try to search conjugation");
 			aPlasmid.tryToSendPlasmid(pickPotentialRecipient(potentials));
+		}
 	}
 	
 	/**
 	 * \brief Growth tone as a linear interpolation between the two cutoffs
-	 * specified in the protocol file.
+	 * specified in the protocol file. If no cutoffs specified, growth tone will be 1.0
 	 * 
 	 * <p>See Merkey <i>et al</i> (2011) p.5 for more details:
 	 * <a href=
@@ -638,9 +655,30 @@ public class PlasmidBac extends BactEPS
 	 */
 	public double getScaledTone()
 	{
-		double out = getSpeciesParam().lowTonusCutoff; 
-		out = (growthTone() - out)/(getSpeciesParam().highTonusCutoff - out);
-		return Math.max(0.0, Math.min(1.0, out));
+		// Default is no growth rate dependence of plasmid transfer rate
+		// If low and high tonus cutoffs are not set in the protocol file
+		// they are set to -Double.MAX_VALUE by default
+		// In this case this function should return 1
+		Double lowTonus = getSpeciesParam().lowTonusCutoff; 
+		Double highTonus = getSpeciesParam().highTonusCutoff;
+		Double theTonus = growthTone();
+		Double scaledTone = 1.0;
+
+		/*
+		 * Too low, so return zero.
+		 */
+		if ( theTonus < lowTonus )
+			scaledTone = 0.0;
+		/*
+		 * Middle case, so do linear interpolation.
+		 */
+		else if ( theTonus < highTonus )
+			scaledTone = (theTonus-lowTonus) / (highTonus-lowTonus);
+		/*
+		 * If neither of these is called we have a high tonus,
+		 * so just return maximum (same effect as no growth dependence).
+		 */
+		return scaledTone;
 	}
 	
 	/**
@@ -673,18 +711,18 @@ public class PlasmidBac extends BactEPS
 	 */
 	private void collectPlasmidSpeciesNames(Simulator aSim)
 	{
-		//System.out.println("This is "+aSim.speciesDic.get(this.speciesIndex));
+		LogFile.writeLog("This is "+aSim.speciesDic.get(this.speciesIndex));
 		for ( Species aSpecies : aSim.speciesList )
 		{
 			if ( ! ( aSpecies.getProgenitor() instanceof Plasmid ) )
 				continue;
-			//System.out.println("Looking at "+aSpecies.speciesName);
-			if ( ! ((Plasmid) aSpecies.getProgenitor()).isCompatible(this) )
+			LogFile.writeLog("Looking at "+aSpecies.speciesName);
+			if ( ! ((Plasmid) aSpecies.getProgenitor()).isHostCompatible(this) )
 			{
-				//System.out.println("\tNot compatible");
+				LogFile.writeLog("\tHost not compatible");
 				continue;
 			}
-			//System.out.println("\tAdded!");
+			LogFile.writeLog("\tAdded!");
 			getSpeciesParam().addPotentialPlasmidName(aSpecies.speciesName);
 		}
 	}
@@ -697,6 +735,7 @@ public class PlasmidBac extends BactEPS
 	 */
 	private ArrayList<String> getPotentialPlasmidNames()
 	{
+//		LogFile.writeLog("a list of plasmids" +this.getSpeciesParam().potentialPlasmids);
 		return this.getSpeciesParam().potentialPlasmids;
 	}
 	
@@ -714,12 +753,7 @@ public class PlasmidBac extends BactEPS
 	public StringBuffer sendHeader()
 	{
 		StringBuffer header = super.sendHeader();
-		for (String plasmidSpeciesName :  getPotentialPlasmidNames())
-		{
-			header.append(","+plasmidSpeciesName+"CopyNumber");
-			header.append(","+plasmidSpeciesName+"LastReception");
-			header.append(","+plasmidSpeciesName+"LastDonation");
-		}
+		header.append(",plasName,tEntry,numHT,numVT");
 		return header;
 	}
 	
@@ -736,22 +770,39 @@ public class PlasmidBac extends BactEPS
 	public StringBuffer writeOutput()
 	{
 		StringBuffer tempString = super.writeOutput();
-		int nCopy;
-		double r, d;
-		for (String plasmidSpeciesName :  getPotentialPlasmidNames() )
+		String plasName;
+		double tEntry;
+		int numHT, numVT;
+		for ( Plasmid aPlasmid : _plasmidHosted )
 		{
-			nCopy = 0;
-			r = -Double.MAX_VALUE;
-			d = -Double.MAX_VALUE;
-			for ( Plasmid aPlasmid : _plasmidHosted )
-				if ( aPlasmid.isSpeciesName(plasmidSpeciesName) )
-				{
-					nCopy = aPlasmid.getCopyNumber();
-					r = aPlasmid.getTimeRecieved();
-					d = aPlasmid.getTimeLastDonated();
-				}
-			tempString.append(","+nCopy+","+r+","+d);
+			plasName = aPlasmid.getName();
+			tEntry = aPlasmid.getBirthday();
+			numHT = aPlasmid.getNumHT();
+			numVT= aPlasmid.getGeneration();
+			tempString.append(","+plasName + "," + tEntry + "," + numHT + "," + numVT);
 		}
+		
+//		int nCopy;
+//		double r, d;
+//		the following for loop is never stepped through whole simulation
+//		for (String plasmidSpeciesName :  getPotentialPlasmidNames() )
+//		{
+			
+//			nCopy = 0;
+//			r = -Double.MAX_VALUE;
+//			d = -Double.MAX_VALUE;
+//			for ( Plasmid aPlasmid : _plasmidHosted )
+//			{
+//				if ( aPlasmid.isSpeciesName(plasmidSpeciesName) )
+//				{
+//					nCopy = aPlasmid.getCopyNumber();
+//					r = aPlasmid.getTimeRecieved();
+//					d = aPlasmid.getTimeLastDonated();
+//					LogFile.writeLog("has been stepped");
+//				}
+//			}
+//			tempString.append(","+nCopy+","+r+","+d);
+//		}
 		return tempString;
 	}
 	
@@ -770,8 +821,19 @@ public class PlasmidBac extends BactEPS
 	@Override
 	public Color getColor()
 	{
-		//TODO
-		return null;
+		// TODO
+		PlasmidBacParam param = getSpeciesParam();
+		/*
+		 * Recipients have no plasmid.
+		 * Transconjugant received the plasmid after birth.
+		 * Donor received the plasmid before/at birth.
+		if ( _plasmidHosted.isEmpty() )
+			return param.rColor;
+		else if ( (_plasmidHosted_numHT == 0  )
+			return param.tColor;
+		else
+		 */
+			return param.dColor;
 	}
 	
 	@Override

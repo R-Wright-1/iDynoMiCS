@@ -47,6 +47,11 @@ public class Plasmid extends InfoAgent
 	 * neighbouring cells to find a potential recipient.
 	 */
 	protected double _scanRate;
+	/**
+	 * Qian 10.2016:
+	 * Number of horizontal transfers (conjugation) 
+	 */
+	protected int _numHT;
 	
 	/*************************************************************************
 	 * CONSTRUCTORS
@@ -63,9 +68,13 @@ public class Plasmid extends InfoAgent
 	{
 		Plasmid out = (Plasmid) super.clone();
 		out._speciesParam = this._speciesParam;
+		out._generation = this._generation;
+		out._genealogy = this._genealogy;
+		out._testTally = this._testTally;
 		out._copyNumber = this._copyNumber;
 		out._tLastDonated = this._tLastDonated;
 		out._tReceived = this._tReceived;
+		out._numHT = this._numHT;
 		return out;
 	}
 	
@@ -123,6 +132,7 @@ public class Plasmid extends InfoAgent
 		this._tLastDonated = -Double.MAX_VALUE;
 		this._tReceived = -Double.MAX_VALUE;
 		this._testTally = 0.0;
+		this._numHT = 0;
 	}
 	
 	@Override
@@ -170,6 +180,11 @@ public class Plasmid extends InfoAgent
 		return this._tLastDonated;
 	}
 	
+	public int getNumHT()
+	{
+		return this._numHT;
+	}
+	
 	/**
 	 * \brief Set the copy number, time last received, and time last donated 
 	 * for this Plasmid.
@@ -202,6 +217,11 @@ public class Plasmid extends InfoAgent
 	 * HIGHER METHODS
 	 ************************************************************************/
 	
+	public boolean isHostCompatible(PlasmidBac targetRecipient)
+	{
+		return getSpeciesParam().isHostCompatible(targetRecipient);	    
+	}
+
 	/**
 	 * \brief Given a potential recipient, determine whether this agent could
 	 * receive a copy of this plasmid.
@@ -252,6 +272,7 @@ public class Plasmid extends InfoAgent
 	{
 		this._scanRate = this.getSpeciesParam().scanSpeed * scaledTone;
 		this._testTally +=  this._scanRate * _agentGrid.AGENTTIMESTEP;
+		LogFile.writeLog("scaledTone " + scaledTone + " testTally " + _testTally);
 	}
 	
 	/**
@@ -261,6 +282,7 @@ public class Plasmid extends InfoAgent
 	 */
 	public void tryToSendPlasmid(LocatedAgent aTarget)
 	{
+		LogFile.writeLog("try to send Plasmid");
 		/*
 		 * We're looking at a target, so update the tally to reflect this.
 		 */
@@ -287,6 +309,8 @@ public class Plasmid extends InfoAgent
 			baby.registerBirth();
 			aPB.welcomePlasmid(baby);
 			baby._copyNumber = this._copyNumber;
+			this._numHT++; //Qian 10.2016: update the number of horizontal transfers for this plasmid (donor).
+			LogFile.writeLog("numHT " + this.getBirthday() + " " + _numHT);
 			this._tLastDonated = baby._tReceived = SimTimer.getCurrentTime();
 			this._testTally = 0.0;
 		}

@@ -5,6 +5,7 @@ import java.util.ArrayList;
 
 import simulator.Simulator;
 import utils.LogFile;
+import utils.UnitConverter;
 import utils.XMLParser;
 
 /**
@@ -33,11 +34,6 @@ public class PlasmidBacParam extends BactEPSParam
 	 * effect.
 	 */
 	public double highTonusCutoff = - Double.MAX_VALUE;
-	
-	/**
-	 * Parameter for collision frequency in chemostat simulations.
-	 */
-	public double collisionCoeff = 0.1;
 	
 	/**
 	 * Whether or not to scale scan probabilities by distance from the host
@@ -78,14 +74,19 @@ public class PlasmidBacParam extends BactEPSParam
 		
 		double tempDbl;
 		Boolean tempBool;
-		String tempCol;
+		String tempStr = "";
+		StringBuffer tempUnit = new StringBuffer("");
+		
 		/*
 		 * Get the growth dependency parameters.
 		 */
+		tempDbl = aSpeciesRoot.getParamDbl("maxGrowthRate", tempUnit);
+		maxGrowthRate = tempDbl*UnitConverter.time(tempUnit.toString());
+		/*
 		tempDbl = getSpeciesParameterDouble("maxGrowthRate",
 											aSpeciesRoot, speciesDefaults);
 		maxGrowthRate = Double.isFinite(tempDbl) ? tempDbl : maxGrowthRate;
-		
+		*/
 		
 		tempDbl = getSpeciesParameterDouble("lowTonusCutoff",
 											aSpeciesRoot, speciesDefaults);
@@ -95,7 +96,6 @@ public class PlasmidBacParam extends BactEPSParam
 		tempDbl = getSpeciesParameterDouble("highTonusCutoff", aSpeciesRoot,
 															speciesDefaults);
 		highTonusCutoff = Double.isFinite(tempDbl)? tempDbl : highTonusCutoff;
-		
 		
 		tempBool = getSpeciesParameterBool("scaleScanProb", aSpeciesRoot,
 															speciesDefaults);
@@ -110,22 +110,22 @@ public class PlasmidBacParam extends BactEPSParam
 		/*
 		 * Get the colours for POV-Ray output.
 		 */
-		tempCol = getSpeciesParameterString("donorColor",
+		tempStr = getSpeciesParameterString("donorColor",
 											aSpeciesRoot, speciesDefaults);
-		tempCol = ( tempCol == null ) ? "white" : tempCol;
-		dColor = utils.UnitConverter.getColor(tempCol);
+		tempStr = ( tempStr == null ) ? "white" : tempStr;
+		dColor = utils.UnitConverter.getColor(tempStr);
 		
 		
-		tempCol = getSpeciesParameterString("transconjugantColor",
+		tempStr = getSpeciesParameterString("transconjugantColor",
 											aSpeciesRoot, speciesDefaults);
-		tempCol = ( tempCol == null ) ? "white" : tempCol;
-		tColor = utils.UnitConverter.getColor(tempCol);
+		tempStr = ( tempStr == null ) ? "white" : tempStr;
+		tColor = utils.UnitConverter.getColor(tempStr);
 		
 		
-		tempCol = getSpeciesParameterString("recipientColor",
+		tempStr = getSpeciesParameterString("recipientColor",
 											aSpeciesRoot, speciesDefaults);
-		tempCol = ( tempCol == null ) ? "white" : tempCol;
-		rColor = utils.UnitConverter.getColor(tempCol);
+		tempStr = ( tempStr == null ) ? "white" : tempStr;
+		rColor = utils.UnitConverter.getColor(tempStr);
 		
 		potentialPlasmids = new ArrayList<String>();
 	}

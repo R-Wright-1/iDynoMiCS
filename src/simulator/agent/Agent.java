@@ -276,4 +276,9 @@ public abstract class Agent implements Cloneable
 	{
 		return this._genealogy;
 	}
+	
+	public int getGeneration()
+	{
+		return this._generation;
+	}
 }
