@@ -10,8 +10,11 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 
+import com.sun.org.apache.xml.internal.serialize.OutputFormat.DTD;
+
 import simulator.Simulator;
 import simulator.agent.ActiveAgent;
+import simulator.agent.Agent;
 import simulator.agent.LocatedAgent;
 import simulator.agent.SpecialisedAgent;
 import simulator.agent.Species;
@@ -435,12 +438,52 @@ public class PlasmidBac extends BactEPS
 			if ( aPlasmid.isReadyToConjugate() )
 			{
 				if ( Simulator.isChemostat )
-					potentials = buildNbh(aPlasmid);
+					potentials = screenAllPartners(aPlasmid); //buildNbh(aPlasmid);
 				else
 					potentials = buildNbh(aPlasmid, aPlasmid.getPilusRange());
 				// searchConjugation called in either case, but differs internally
 				this.searchConjugation(aPlasmid, potentials);
 			}
+	}
+	
+	protected HashMap<Bacterium, Double> screenAllPartners(Plasmid aPlasmid)
+	{
+		
+		double tallyVariable = 0.0;
+		// Work out how many cells a given plasmid donor collides with per time unit
+		Double tmpCollCoeff = aPlasmid.getSpeciesParam().collisionCoeff;
+		
+		LinkedList<Bacterium> allBact = new LinkedList<Bacterium>(); 
+		int allCellsButMe = 0;
+		
+		// TO DO do this only once per timestep, not for each donor again
+		for ( SpecialisedAgent aSA : _agentGrid.agentList )
+			if ( (aSA != this) && (aSA instanceof Bacterium) )
+			{
+				allCellsButMe++;
+				allBact.add((Bacterium) aSA);
+
+			}
+		double dt = SimTimer.getCurrentTimeStep();
+		double chemostatVol = _species.domain.length_X * _species.domain.length_Y * _species.domain.length_Z;
+		double numScreen = tmpCollCoeff * allCellsButMe * dt / chemostatVol;
+
+		Double temp = numScreen + tallyVariable;
+		int nScreen = temp.intValue(); /* this is floor() */
+		tallyVariable = temp % 1;
+		
+		// randomly pick nScreen bacteria
+		// Note that we use a random number generator that has a very long period so it is impossible to get duplicate random integers
+		HashMap<Bacterium, Double> out = new HashMap<Bacterium, Double>();
+		Bacterium thoseToScreen;
+		int randy;
+		for (int i = 0; i < numScreen; i++) {
+			randy = ExtraMath.getUniRandInt(nScreen);
+			thoseToScreen = allBact.get(randy);
+			out.put(thoseToScreen, 1.0);
+		}
+		
+		return out;
 	}
 	
 	/**
