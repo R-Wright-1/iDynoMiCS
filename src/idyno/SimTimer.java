@@ -217,9 +217,9 @@ public class SimTimer
 	}
 	
 	/**
-	 * \brief Returns the current timestep, in hours.
+	 * \brief Returns the duration of the current timestep, in hours.
 	 * 
-	 * @return Double value stating the current simulation timestep.
+	 * @return Double value stating the current duration of the simulation timestep.
 	 */
 	public static Double getCurrentTimeStep()
 	{

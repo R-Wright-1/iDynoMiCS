@@ -11,6 +11,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 
 import com.sun.org.apache.xml.internal.serialize.OutputFormat.DTD;
+import com.sun.org.apache.xpath.internal.functions.FuncFloor;
 
 import simulator.Simulator;
 import simulator.agent.ActiveAgent;
@@ -431,24 +432,83 @@ public class PlasmidBac extends BactEPS
 		 * LocatedAgent.pickNeighbour() uses a randomly generated value to pick
 		 * a random Bacterium.
 		 */
-		HashMap<Bacterium, Double> 
-								potentials = new HashMap<Bacterium, Double>();
 		
 		for ( Plasmid aPlasmid : this._plasmidHosted )
 			if ( aPlasmid.isReadyToConjugate() )
 			{
-				if ( Simulator.isChemostat )
-					potentials = screenAllPartners(aPlasmid); //buildNbh(aPlasmid);
-				else
+				if ( Simulator.isChemostat ) {
+					/* calculate probability of collision of this donor with other PlasmidBac agents,
+					multiply this probability by getScaledTone,
+					then work out how many others to attempt to conjugate with and put these into potentials
+					 */
+					LinkedList<Bacterium> partners = screenAllPartners(aPlasmid); //was buildNbh(aPlasmid); but need to separate chemostat from biofilm stuff
+					// iterate through all partners
+					// instead of calling seachConjugation we only do one line from searchConjugation (tryToSendPlasmid)
+					for (Bacterium aTarget: partners) {
+						aPlasmid.tryToSendPlasmid(aTarget);
+					}
+				} else {
+					HashMap<Bacterium, Double> 
+					potentials = new HashMap<Bacterium, Double>();
 					potentials = buildNbh(aPlasmid, aPlasmid.getPilusRange());
-				// searchConjugation called in either case, but differs internally
-				this.searchConjugation(aPlasmid, potentials);
+					// searchConjugation called in either case, but differs internally
+					this.searchConjugation(aPlasmid, potentials);
+				}
 			}
 	}
 	
-	protected HashMap<Bacterium, Double> screenAllPartners(Plasmid aPlasmid)
+	protected LinkedList<Bacterium> screenAllPartners(Plasmid aPlasmid)
 	{
+
+		// Work out how many cells a given plasmid donor collides with per time unit
+		Double tmpCollCoeff = aPlasmid.getSpeciesParam().collisionCoeff;
 		
+		LinkedList<Bacterium> allBact = new LinkedList<Bacterium>(); 
+		int allCellsButMe = 0;
+		
+		// TO DO do this only once per timestep, not for each donor again
+		/* Collision rate calculations should not be able to consider whether the potentials
+		 * are of the right class (PlasmidBac) or not, so include all bacteria
+		 */
+		for ( SpecialisedAgent aSA : _agentGrid.agentList )
+			if ( (aSA != this) && (aSA instanceof Bacterium) )
+			{
+				allCellsButMe++;
+				allBact.add((Bacterium) aSA);
+
+			}
+		// dt is the duration of the time step
+		double dt = SimTimer.getCurrentTimeStep();
+		double chemostatVol = _species.domain.length_X * _species.domain.length_Y * _species.domain.length_Z;
+		// not a 'proper' probability as could be larger than one, we deal with that below
+		double probToScreen = tmpCollCoeff * allCellsButMe * dt / chemostatVol;
+		// scale by growth tone of this donor
+		probToScreen *= this.getScaledTone();
+		LogFile.writeLog("tmpCollCoeff: " + tmpCollCoeff + "  allCellsButMe: " + allCellsButMe);
+		LogFile.writeLog("dt: " + dt + "  chemostatVol: " + chemostatVol + "probToScreen: " + probToScreen);
+
+		int numScreen = (int) Math.floor(probToScreen);
+		double remainder = probToScreen - numScreen;
+		double randyDbl = ExtraMath.getUniRandDbl(0.0, 1.0);
+		if (randyDbl < remainder) {
+			numScreen++;
+		}
+		LogFile.writeLog("numScreen: " + numScreen);
+		
+		// randomly pick nScreen bacteria
+		// Note that we use a random number generator that has a very long period so it is impossible to get duplicate random integers
+		LinkedList<Bacterium> out = new LinkedList<Bacterium>();
+		Bacterium thoseToScreen;
+		int randyInt;
+		for (int i = 0; i < numScreen; i++) {
+			randyInt = ExtraMath.getUniRandInt(allCellsButMe);
+			thoseToScreen = allBact.get(randyInt);
+			out.add(thoseToScreen);
+		}
+
+		return out;
+
+/*		
 		double tallyVariable = 0.0;
 		// Work out how many cells a given plasmid donor collides with per time unit
 		Double tmpCollCoeff = aPlasmid.getSpeciesParam().collisionCoeff;
@@ -467,23 +527,25 @@ public class PlasmidBac extends BactEPS
 		double dt = SimTimer.getCurrentTimeStep();
 		double chemostatVol = _species.domain.length_X * _species.domain.length_Y * _species.domain.length_Z;
 		double numScreen = tmpCollCoeff * allCellsButMe * dt / chemostatVol;
+		LogFile.writeLog("tmpCollCoeff: " + tmpCollCoeff + "  allCellsButMe: " + allCellsButMe);
+		LogFile.writeLog("dt: " + dt + "  chemostatVol: " + chemostatVol);
 
 		Double temp = numScreen + tallyVariable;
-		int nScreen = temp.intValue(); /* this is floor() */
+		int nScreen = temp.intValue();  this is floor() 
 		tallyVariable = temp % 1;
+		LogFile.writeLog("numScreen: " + numScreen + "  tallyVariable: " + tallyVariable);
 		
 		// randomly pick nScreen bacteria
 		// Note that we use a random number generator that has a very long period so it is impossible to get duplicate random integers
 		HashMap<Bacterium, Double> out = new HashMap<Bacterium, Double>();
 		Bacterium thoseToScreen;
 		int randy;
-		for (int i = 0; i < numScreen; i++) {
-			randy = ExtraMath.getUniRandInt(nScreen);
+		for (int i = 0; i < nScreen; i++) {
+			randy = ExtraMath.getUniRandInt(allCellsButMe);
 			thoseToScreen = allBact.get(randy);
 			out.put(thoseToScreen, 1.0);
 		}
-		
-		return out;
+*/		
 	}
 	
 	/**
@@ -497,6 +559,8 @@ public class PlasmidBac extends BactEPS
 	 * potential recipients below by compatibility, whereby losing equivalence
 	 * with the biofilm model, or 2) changing the ODE model.
 	 */
+	
+	// old method, currently not used and replaced by screenAllPartners
 	public HashMap<Bacterium, Double> buildNbh(Plasmid aPlasmid)
 	{
 		HashMap<Bacterium, Double> out = new HashMap<Bacterium, Double>();
@@ -644,7 +708,7 @@ public class PlasmidBac extends BactEPS
 	}
 	
 	/**
-	 * \brief Search for partners and try to send them a plasmid.
+	 * \brief Search for partners and try to send them a plasmid. Only used in biofilms.
 	 * 
 	 * @param aPlasmid A Plasmid, hosted by this PlasmidBac, that should try
 	 * to conjugate with neighboring bacteria.
@@ -662,19 +726,9 @@ public class PlasmidBac extends BactEPS
 		 * The plasmid will calculate the number of neighbours it can
 		 * look at (there may be some overflow from the previous timestep).
 		 * 
-		 * In chemostat simulations, the collision frequency will be
-		 * proportional to the total population density.
-		 * 
-		 * TODO We may want to scale the population concentration bit in the
-		 * chemostat by a parameter.
+		 * This is not used in chemostat simulations, which require different treatment of collisions
 		 */
-		if ( Simulator.isChemostat )
-		{
-			aPlasmid.updateScanRate(this.getScaledTone() * 
-					potentials.size()/_agentGrid.getVoxelVolume());
-		}
-		else
-			aPlasmid.updateScanRate(this.getScaledTone());
+		aPlasmid.updateScanRate(this.getScaledTone());
 		/*
 		 * Find a recipient(s) and try to send them a plasmid.
 		 */

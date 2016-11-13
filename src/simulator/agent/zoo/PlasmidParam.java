@@ -118,9 +118,11 @@ public class PlasmidParam extends ActiveParam
 											aSpeciesRoot, speciesDefaults);
 		copyNumDefault = ( tempInt == null ) ? copyNumDefault : tempInt;
 		
+		LogFile.writeLog("pilusLength " + pilusLength);
 		tempDbl = getSpeciesParameterLength("pilusLength", 
 											aSpeciesRoot, speciesDefaults);
 		pilusLength = Double.isFinite(tempDbl) ? tempDbl : pilusLength;
+		LogFile.writeLog("pilusLength " + pilusLength);
 		
 		tempDbl = getSpeciesParameterTime("donationLag",
 											aSpeciesRoot, speciesDefaults);
