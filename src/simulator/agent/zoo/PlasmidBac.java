@@ -46,6 +46,15 @@ public class PlasmidBac extends BactEPS
 	private LinkedList<Plasmid> _plasmidHosted = new LinkedList<Plasmid>();
 	
 	/**
+	 * All agents of type Bacterium to be collected once per timestep for use in chemostats only
+	 * For efficiency and for preventing newly born agents to conjugate
+	 * Only one instance of the fields below shared by all PlasmidBac
+	 */
+	private static LinkedList<Bacterium> _allBact = new LinkedList<Bacterium>();
+	private static int _now;
+	private static int _allCellsButMe;
+	
+	/**
 	 * TODO
 	 */
 	private double _chemoScaler;
@@ -269,6 +278,11 @@ public class PlasmidBac extends BactEPS
 	@Override
 	public void internalStep()
 	{
+		// make this list when the first agent is called, regardless of whether it has a plasmid or not
+		// this ensures the list does not contain any newborns
+		// but only if chemostat
+		if ( Simulator.isChemostat ) makeListAllBacteria();
+
 		/*
 		 * Check if any plasmids have illegal copy numbers.
 		 */
@@ -447,7 +461,7 @@ public class PlasmidBac extends BactEPS
 					for (Bacterium aTarget: partners) {
 						aPlasmid.tryToSendPlasmid(aTarget);
 					}
-				} else {
+				} else { // biofilm branch
 					HashMap<Bacterium, Double> 
 					potentials = new HashMap<Bacterium, Double>();
 					potentials = buildNbh(aPlasmid, aPlasmid.getPilusRange());
@@ -457,34 +471,55 @@ public class PlasmidBac extends BactEPS
 			}
 	}
 	
+	/**
+	 * \brief Create a list of all Bacterium agents the first time PlasmidBac.screenAllPartners() is called
+	 * This method is only called in chemostat simulations, for biofilms we create
+	 * a list of neighbours for each PlasmidBac individually with buildNbh()
+	 * The list will contain self, so self needs to be skipped in screenAllPartners()
+	 */
+	void makeListAllBacteria() {
+		LogFile.writeLog("_now " +_now + "  SimTimer.getCurrentIter() " + SimTimer.getCurrentIter() );
+
+		if (_now != SimTimer.getCurrentIter()) {
+			_now = SimTimer.getCurrentIter();
+			_allBact.clear();
+			_allCellsButMe = 0;
+
+			/* Collision rate calculations should not be able to consider whether the potentials for conjugation
+			 * are of the right class (PlasmidBac) or not, so include all bacteria, but do not include EPS particles
+			 * because EPS particles only represent EPS, they are not proper agents
+			 */
+			for ( SpecialisedAgent aSA : _agentGrid.agentList )
+				if (aSA instanceof Bacterium)
+				{
+					_allCellsButMe++;
+					_allBact.add((Bacterium) aSA);
+				}
+			_allCellsButMe--;
+		}
+		else
+			return;	
+	}
+
+	/**
+	 * This function is only called for chemostat simulations where collisions are random	
+	 * @param aPlasmid
+	 * @return thoseToScreen (other Bacterium agents that are potential conjugation partners)
+	 */
 	protected LinkedList<Bacterium> screenAllPartners(Plasmid aPlasmid)
 	{
 
 		// Work out how many cells a given plasmid donor collides with per time unit
 		Double tmpCollCoeff = aPlasmid.getSpeciesParam().collisionCoeff;
 		
-		LinkedList<Bacterium> allBact = new LinkedList<Bacterium>(); 
-		int allCellsButMe = 0;
-		
-		// TO DO do this only once per timestep, not for each donor again
-		/* Collision rate calculations should not be able to consider whether the potentials
-		 * are of the right class (PlasmidBac) or not, so include all bacteria
-		 */
-		for ( SpecialisedAgent aSA : _agentGrid.agentList )
-			if ( (aSA != this) && (aSA instanceof Bacterium) )
-			{
-				allCellsButMe++;
-				allBact.add((Bacterium) aSA);
-
-			}
 		// dt is the duration of the time step
 		double dt = SimTimer.getCurrentTimeStep();
 		double chemostatVol = _species.domain.length_X * _species.domain.length_Y * _species.domain.length_Z;
 		// not a 'proper' probability as could be larger than one, we deal with that below
-		double probToScreen = tmpCollCoeff * allCellsButMe * dt / chemostatVol;
+		double probToScreen = tmpCollCoeff * _allCellsButMe * dt / chemostatVol;
 		// scale by growth tone of this donor
 		probToScreen *= this.getScaledTone();
-		LogFile.writeLog("tmpCollCoeff: " + tmpCollCoeff + "  allCellsButMe: " + allCellsButMe);
+		LogFile.writeLog("tmpCollCoeff: " + tmpCollCoeff + "  allCellsButMe: " + _allCellsButMe);
 		LogFile.writeLog("dt: " + dt + "  chemostatVol: " + chemostatVol + "probToScreen: " + probToScreen);
 
 		int numScreen = (int) Math.floor(probToScreen);
@@ -500,103 +535,20 @@ public class PlasmidBac extends BactEPS
 		LinkedList<Bacterium> out = new LinkedList<Bacterium>();
 		Bacterium thoseToScreen;
 		int randyInt;
+		int myIndex = _allBact.indexOf(this);
 		for (int i = 0; i < numScreen; i++) {
-			randyInt = ExtraMath.getUniRandInt(allCellsButMe);
-			thoseToScreen = allBact.get(randyInt);
+			randyInt = ExtraMath.getUniRandInt(_allCellsButMe);
+			while (randyInt == myIndex) // exclude self from thoseToScreen
+					randyInt = ExtraMath.getUniRandInt(_allCellsButMe);
+			thoseToScreen = _allBact.get(randyInt);
 			out.add(thoseToScreen);
 		}
 
 		return out;
-
-/*		
-		double tallyVariable = 0.0;
-		// Work out how many cells a given plasmid donor collides with per time unit
-		Double tmpCollCoeff = aPlasmid.getSpeciesParam().collisionCoeff;
-		
-		LinkedList<Bacterium> allBact = new LinkedList<Bacterium>(); 
-		int allCellsButMe = 0;
-		
-		// TO DO do this only once per timestep, not for each donor again
-		for ( SpecialisedAgent aSA : _agentGrid.agentList )
-			if ( (aSA != this) && (aSA instanceof Bacterium) )
-			{
-				allCellsButMe++;
-				allBact.add((Bacterium) aSA);
-
-			}
-		double dt = SimTimer.getCurrentTimeStep();
-		double chemostatVol = _species.domain.length_X * _species.domain.length_Y * _species.domain.length_Z;
-		double numScreen = tmpCollCoeff * allCellsButMe * dt / chemostatVol;
-		LogFile.writeLog("tmpCollCoeff: " + tmpCollCoeff + "  allCellsButMe: " + allCellsButMe);
-		LogFile.writeLog("dt: " + dt + "  chemostatVol: " + chemostatVol);
-
-		Double temp = numScreen + tallyVariable;
-		int nScreen = temp.intValue();  this is floor() 
-		tallyVariable = temp % 1;
-		LogFile.writeLog("numScreen: " + numScreen + "  tallyVariable: " + tallyVariable);
-		
-		// randomly pick nScreen bacteria
-		// Note that we use a random number generator that has a very long period so it is impossible to get duplicate random integers
-		HashMap<Bacterium, Double> out = new HashMap<Bacterium, Double>();
-		Bacterium thoseToScreen;
-		int randy;
-		for (int i = 0; i < nScreen; i++) {
-			randy = ExtraMath.getUniRandInt(allCellsButMe);
-			thoseToScreen = allBact.get(randy);
-			out.put(thoseToScreen, 1.0);
-		}
-*/		
 	}
 	
 	/**
-	 * \brief buildNbh() is the non-spatial version for chemostats.
-	 * Add all non-self Bacteria in the agent grid to the list of
-	 * potential recipients, with equal proportional to their mass.
-	 * 
-	 * TODO [Rob6Aug2015] This is not quite equivalent to Sonia's ODE model:
-	 * there it is assumed that compatibility upon collision is assessed 
-	 * instantaneously. Fixing this would require either: 1) filtering the
-	 * potential recipients below by compatibility, whereby losing equivalence
-	 * with the biofilm model, or 2) changing the ODE model.
-	 */
-	
-	// old method, currently not used and replaced by screenAllPartners
-	public HashMap<Bacterium, Double> buildNbh(Plasmid aPlasmid)
-	{
-		HashMap<Bacterium, Double> out = new HashMap<Bacterium, Double>();
-		this._chemoScaler = 0.0;
-		/*
-		 * Loop through all SpecialisedAgents in the agentGrid, adding only
-		 * Bacteria and subclasses (e.g. PlasmidBac) to the output. Count 
-		 * the total mass as they are added.
-		 */
-		Bacterium bac;
-		for ( SpecialisedAgent aSA : _agentGrid.agentList )
-			if ( (aSA != this) && (aSA instanceof Bacterium) )
-			{
-				bac = (Bacterium) aSA;
-				out.put(bac, 1.0);
-				this._chemoScaler += bac.getMass(false);
-			}
-		LogFile.writeLog("chemoScaler " + this._chemoScaler);
-		/*
-		 * Scale the probability of each by _chemoScaler, which at this moment is the sum of all other Bacterium masses
-		 */
-		scaleProbabilities(out, this._chemoScaler);
-		/*
-		 * Finally, the chemostat collision scaler is proportional to the
-		 * concentration of potentials multiplied by the concentration of
-		 * this cell. Concentrations in fg/um3 = g/L.
-		 */
-		Double tmpCollCoeff = aPlasmid.getSpeciesParam().collisionCoeff;
-		this._chemoScaler *= tmpCollCoeff * 
-			this.getMass(false) * Math.pow(_agentGrid.getResolution(), -6.0);//jan testing, was -6
-		LogFile.writeLog("chemoScaler " + this._chemoScaler + "  collisionCoeff " + tmpCollCoeff);
-		return out;
-	}
-	
-	/**
-	 * \brief This is the spatial version of buildNbh() for the biofilm.
+	 * \brief This is used only for biofilms, whereas in chemostats, screenAllPartners() is used
 	 * Add all non-self Bacteria within reach of this to a HashMap of
 	 * potential recipients.
 	 * 
@@ -687,7 +639,7 @@ public class PlasmidBac extends BactEPS
 	
 	/**
 	 * \brief Randomly select a Bacterium from the list of potential
-	 * recipients generated in {@link #findPotentialRecipients(Plasmid)}.
+	 * recipients generated in buildNbh() (used in biofilms only)
 	 * 
 	 * <p>Assumes the sum total of probability variables to be one.</p>
 	 */
