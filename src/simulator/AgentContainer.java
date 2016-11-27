@@ -18,6 +18,7 @@ import idyno.SimTimer;
 import simulator.agent.*;
 import simulator.agent.zoo.MultiEpiBac;
 import simulator.agent.zoo.MultiEpisome;
+import simulator.agent.zoo.PlasmidBac;
 import simulator.detachment.*;
 import simulator.diffusionSolver.DiffusionSolver;
 import simulator.diffusionSolver.Solver_pressure;
@@ -302,9 +303,7 @@ public class AgentContainer
 		// for the local time step, choose the value according to which is best
 		double localdt = Math.min(AGENTTIMESTEP,globalTimeStep);
 
-		int nAgent0 = agentList.size();
 		// Apply a shorter time step when visiting all the agents
-
 		while (elapsedTime < globalTimeStep)
 		{
 			// by default use the saved agent timestep
@@ -443,11 +442,11 @@ public class AgentContainer
 		//commented out removeAllDead
 		// this call is now made at the end of the step in Simulator
 		//nDead += removeAllDead();
-		nAgentLastStep = agentList.size();
 		
 		// OUTPUT THE COUNT STATISTICS
-		LogFile.chronoMessageOut("Agents stepped/dead/born: " + nAgent0 + "/"
+		LogFile.chronoMessageOut("Agents stepped/dead/born: " + nAgentLastStep + "/"
 				+ nDeath + "/" + nBirth);
+		LogFile.writeLog("_numTry " + PlasmidBac._numTry + "  _numTrans " + PlasmidBac._numTrans);
 
 		
 		nAgentLastStep = agentList.size();

@@ -54,10 +54,9 @@ public class PlasmidBac extends BactEPS
 	private static int _now;
 	private static int _allCellsButMe;
 	
-	/**
-	 * TODO
-	 */
-	private double _chemoScaler;
+	public static int _numTry;
+	
+	public static int _numTrans;
 	
 	/*************************************************************************
 	 * CONSTRUCTORS
@@ -478,24 +477,28 @@ public class PlasmidBac extends BactEPS
 	 * The list will contain self, so self needs to be skipped in screenAllPartners()
 	 */
 	void makeListAllBacteria() {
-		LogFile.writeLog("_now " +_now + "  SimTimer.getCurrentIter() " + SimTimer.getCurrentIter() );
+//		LogFile.writeLog("_now " +_now + "  SimTimer.getCurrentIter() " + SimTimer.getCurrentIter() );
 
 		if (_now != SimTimer.getCurrentIter()) {
 			_now = SimTimer.getCurrentIter();
 			_allBact.clear();
 			_allCellsButMe = 0;
+			_numTry = 0;
+			_numTrans = 0;
 
 			/* Collision rate calculations should not be able to consider whether the potentials for conjugation
 			 * are of the right class (PlasmidBac) or not, so include all bacteria, but do not include EPS particles
 			 * because EPS particles only represent EPS, they are not proper agents
 			 */
-			for ( SpecialisedAgent aSA : _agentGrid.agentList )
+			for ( SpecialisedAgent aSA : _agentGrid.agentList ) {
 				if (aSA instanceof Bacterium)
 				{
 					_allCellsButMe++;
 					_allBact.add((Bacterium) aSA);
 				}
+			}
 			_allCellsButMe--;
+			LogFile.writeLog("_agentGrid.agentList.size() " + _agentGrid.agentList.size() );
 		}
 		else
 			return;	
@@ -519,8 +522,8 @@ public class PlasmidBac extends BactEPS
 		double probToScreen = tmpCollCoeff * _allCellsButMe * dt / chemostatVol;
 		// scale by growth tone of this donor
 		probToScreen *= this.getScaledTone();
-		LogFile.writeLog("tmpCollCoeff: " + tmpCollCoeff + "  allCellsButMe: " + _allCellsButMe);
-		LogFile.writeLog("dt: " + dt + "  chemostatVol: " + chemostatVol + "probToScreen: " + probToScreen);
+//		LogFile.writeLog("tmpCollCoeff: " + tmpCollCoeff + "  allCellsButMe: " + _allCellsButMe);
+//		LogFile.writeLog("dt: " + dt + "  chemostatVol: " + chemostatVol + "probToScreen: " + probToScreen);
 
 		int numScreen = (int) Math.floor(probToScreen);
 		double remainder = probToScreen - numScreen;
@@ -528,7 +531,7 @@ public class PlasmidBac extends BactEPS
 		if (randyDbl < remainder) {
 			numScreen++;
 		}
-		LogFile.writeLog("numScreen: " + numScreen);
+		LogFile.writeLog("probToScreen: " + probToScreen + "  numScreen: " + numScreen);
 		
 		// randomly pick nScreen bacteria
 		// Note that we use a random number generator that has a very long period so it is impossible to get duplicate random integers

@@ -175,7 +175,7 @@ public class Solver_chemostat extends DiffusionSolver
 											_reactions.get(i).reactionName);
 				_reactiveBiomass[i]._conc[0].resetToZero();
 				LogFile.writeLog("biomass conc is ----->>>   " + 
-								_reactiveBiomass[i]._conc[0].grid[0][0][0]);
+								_reactiveBiomass[i]._conc[0].grid[0][0][0] + " dry mass g/L");
 			}
 		}
 		catch(Exception e)
@@ -240,7 +240,7 @@ public class Solver_chemostat extends DiffusionSolver
 				_reactions.get(i).fitAgentMassOnGrid(
 											_reactiveBiomass[i].getGrid());
 				LogFile.writeLog("biomass conc is ----->>>   " + 
-						_reactiveBiomass[i]._conc[0].grid[0][0][0]);
+						_reactiveBiomass[i]._conc[0].grid[0][0][0] + " dry mass g/L");
 			}
 		}
 		catch (Exception e)

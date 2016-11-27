@@ -276,17 +276,19 @@ public class Plasmid extends InfoAgent
 	}
 	
 	/**
-	 * \brief Try to send a copy of this Plasmid to a target LocatedAgent.
+	 * \brief Try to send a copy of this Plasmid to a target LocatedAgent. Used both in chemostat and biofilm simulations.
 	 * 
 	 * @param aTarget LocatedAgent that may receive a copy of this Plasmid.
 	 */
 	public void tryToSendPlasmid(LocatedAgent aTarget)
 	{
+		// static reference for counting number of tries
+		PlasmidBac._numTry++;
 		LogFile.writeLog("try to send Plasmid");
 		/*
-		 * We're looking at a target, so update the tally to reflect this.
+		 * We're looking at a target, so decrement the _testTally to reflect this.
 		 */
-		this._testTally -= 1.0;
+		this._testTally -= 1.0; // also decremented in chemostat simulations but without consequences as _testTally not evaluated
 		/*
 		 * Unless this is a PlasmidBac, there can be no donation.
 		 */
@@ -310,9 +312,10 @@ public class Plasmid extends InfoAgent
 			aPB.welcomePlasmid(baby);
 			baby._copyNumber = this._copyNumber;
 			this._numHT++; //Qian 10.2016: update the number of horizontal transfers for this plasmid (donor).
+			PlasmidBac._numTrans++;
 			LogFile.writeLog("numHT " + this.getBirthday() + " " + _numHT);
 			this._tLastDonated = baby._tReceived = SimTimer.getCurrentTime();
-			this._testTally = 0.0;
+			baby._testTally = 0.0; // jan: was this._testTally = 0.0; but a donor should be able to conjugate several times per timestep if _scanRate * AGENTTIMESTEP is > 1
 		}
 		catch (CloneNotSupportedException e)
 		{
@@ -322,7 +325,7 @@ public class Plasmid extends InfoAgent
 	
 	/**
 	 * \brief Check whether this plasmid still has time to scan in this
-	 * timestep.
+	 * timestep. canScan() is not called in a chemostat simulation, so _testTally is effectively ignored
 	 * 
 	 * @return boolean: true if there is time for another scan, false if not.
 	 */
@@ -332,8 +335,8 @@ public class Plasmid extends InfoAgent
 	}
 	
 	/**
-	 * \brief Perform a random check to see if a viable donation is indeed
-	 * successful.
+	 * \brief Only transfer the plasmid with a certain probability.
+	 * transferProficiency is a probability between 0 and 1 and specified in the protocol file. 
 	 * 
 	 * @return boolean: true if donation may proceed, false if not.
 	 */
