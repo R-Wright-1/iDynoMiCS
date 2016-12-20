@@ -114,7 +114,7 @@ public class AgingBac extends Bacterium
 				getSpeciesParam().deathRadiusCV);
 		
 		// Update the lineage
-		recordGenealogy(baby);
+		recordGenealogy(this, baby);
 
 		// Share mass of all compounds between two daughter cells and compute
 		// new size

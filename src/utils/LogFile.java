@@ -296,7 +296,7 @@ public class LogFile
 	 */
 	public static String getDateFileName()
 	{
-		DateFormat dateFormat = new SimpleDateFormat("yyyyMMdd_HHmm");
+		DateFormat dateFormat = new SimpleDateFormat("yyyyMMdd_HHmmss");
 		return dateFormat.format(Calendar.getInstance().getTime());		
 	}
-}
+} 

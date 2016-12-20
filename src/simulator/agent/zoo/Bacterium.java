@@ -161,15 +161,16 @@ public class Bacterium extends LocatedAgent implements Cloneable
 	}
 
 	/**
-	 * \brief Initialises any new agent (progenitor or daughter cell), setting
-	 * cell radius, generation, and genealogy.
+	 * \brief Initialises agents from file only, _family, _genealogy, _generation, _birthday are dealt with by Agent
+	 * So we only update radius, volume, mass
 	 */
 	public void init() 
 	{
 		// Lineage management : this is a new agent, he has no known parents.
-		_generation = 0;
-		_genealogy = BigInteger.ZERO;
-		// Determine the radius, volume and total mass of the agent.
+		//_generation = 0;
+		//_genealogy = _genealogy.set(0, 0);
+		
+		// Calculate the radius, volume and total mass of the agent.
 		updateSize();
 	}
 
@@ -187,7 +188,9 @@ public class Bacterium extends LocatedAgent implements Cloneable
 	{
 		// Clone the agent and initialise it
 		Bacterium baby = (Bacterium) this.clone();
-		baby.init();
+		recordGenealogy(this, baby);
+		baby.updateSize();
+		//baby.init();
 		return baby;
 	}
 

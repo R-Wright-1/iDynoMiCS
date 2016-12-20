@@ -12,6 +12,7 @@
 package simulator.agent;
 
 import java.math.BigInteger;
+import java.util.BitSet;
 
 import idyno.SimTimer;
 import simulator.Simulator;
@@ -41,17 +42,16 @@ public abstract class Agent implements Cloneable
 	protected int _lastStep;
 
 	/**
-	 * The number of generations between the progenitor and the current agent
+	 * The number of generations between the earliest progenitor and the current agent
 	 */
 	protected int _generation = 0;
 	
 	/**
-	 * Integer for the binary reading of the 0 and 1 coding the lineage. When
-	 * a cells divides, one daughter has the index value 1, the other the
-	 * index value 0, then this index is added on the left of the lineage
-	 * description.
+	 * A sequence of 0 and 1 coding the lineage as a BitSet.
+	 * Whenever a cell divides, the original or 'mother' cell or old pole cell's _generation becomes appended with a 0,
+	 * and the daughter cell's _generation becomes appended with a 1.
 	 */
-	protected BigInteger _genealogy  = BigInteger.ZERO;
+	protected StringBuffer _genealogy = new StringBuffer("0"); // first progenitor starts with "0"
 	
 	/**
 	 * Integer noting the family which this agent belongs to
@@ -108,7 +108,8 @@ public abstract class Agent implements Cloneable
 	{
 		// read in info from the result file IN THE SAME ORDER AS IT WAS OUTPUT
 		_family     = Integer.parseInt(singleAgentData[0]);
-		_genealogy  = new BigInteger(singleAgentData[1]);
+		String tmpString = singleAgentData[1];
+		_genealogy  = new StringBuffer(tmpString);
 		_generation = Integer.parseInt(singleAgentData[2]);
 		_birthday   = Double.parseDouble(singleAgentData[3]);
 	}
@@ -210,35 +211,33 @@ public abstract class Agent implements Cloneable
 	}
 	
 	/**
-	 * \brief Called when creating an agent : updates _generation and
-	 * _genealogy field.
+	 * \brief Called when creating an agent: updates
+	 * _genealogy and _generation and _birthday fields.
 	 * 
-	 * @param baby The newly created agent that is the next generation of this
+	 * @param baby The newly created agent that is the daughter of this
 	 * agent.
 	 */
-	protected void recordGenealogy(Agent baby) 
+	protected void recordGenealogy(Agent mum, Agent baby) 
 	{
-		// Rob 18/1/11: Shuffled around slightly to include odd numbers
-		//baby._genealogy = _genealogy+ExtraMath.exp2long(this._generation);
-		// Rob 11/2/15: Changed to BigInteger
-		baby._genealogy = new BigInteger("2");
-		baby._genealogy.pow(this._generation);
-		baby._genealogy.add(this._genealogy);
+		//LogFile.writeLog("the start of recordGenealogy");
+		LogFile.writeLog("before mum._genealogy: " + mum._genealogy + " baby._genealogy: " + baby._genealogy);
 		
-		this._generation++;
-		baby._generation = this._generation;
+		//LogFile.writeLog(" mum._genealogy: " + mum._genealogy);
+		String oldGenealogy = new String(mum._genealogy.toString());
+		baby._genealogy = new StringBuffer(oldGenealogy);
+		mum._genealogy.append("0"); // 'mother' or older daughter
+		baby._genealogy.append("1"); // 'younger' daughter (the two daughters may be identical, but we need to distinguish them here)
 		
-		// We want to know if the genealogy goes negative.
-		if ( baby._genealogy.signum() < 0 )
-		{
-			LogFile.writeLog("Warning: baby's genealogy has gone negative:");
-			LogFile.writeLog("family "+baby._family+", genealogy "+
-							baby._genealogy+", generation "+baby._generation);
-		}
+		//LogFile.writeLog("mum._genealogy: " + mum._genealogy + "baby._genealogy: " + baby._genealogy);
+		LogFile.writeLog("after mum._genealogy: " + mum._genealogy + " baby._genealogy: " + baby._genealogy);
+
+		
+		// _generation counts the number of cell divisions, not distinguishing different daughter cells
+		mum._generation++;
+		baby._generation = mum._generation;
 		
 		// Rob 21/1/11: changed so that only the baby is given a new birthday
 		// this._birthday = SimTimer.getCurrentTime();
-		// baby._birthday = this._birthday;
 		baby._birthday = SimTimer.getCurrentTime();
 	}
 
@@ -272,7 +271,7 @@ public abstract class Agent implements Cloneable
 		return this._birthday;
 	}
 	
-	public BigInteger getGenealogy()
+	public StringBuffer getGenealogy()
 	{
 		return this._genealogy;
 	}

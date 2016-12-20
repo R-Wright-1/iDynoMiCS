@@ -24,6 +24,11 @@ public class PlasmidParam extends ActiveParam
 	public String name;
 	
 	/**
+	 * Default ID of this plasmid.
+	 */
+	public Integer plasmidID = 0;
+	
+	/**
 	 * Default copy number of this plasmid in a host.
 	 */
 	public Integer copyNumDefault = 1;
@@ -114,15 +119,18 @@ public class PlasmidParam extends ActiveParam
 		
 		name = aSpeciesRoot.getName();
 		
+		tempInt = getSpeciesParameterInteger("plasmidID",
+				aSpeciesRoot, speciesDefaults);
+		plasmidID = ( tempInt == null ) ? plasmidID : tempInt;
+		LogFile.writeLog("plasmidID: " + plasmidID);
+		
 		tempInt = getSpeciesParameterInteger("copyNumDefault",
 											aSpeciesRoot, speciesDefaults);
 		copyNumDefault = ( tempInt == null ) ? copyNumDefault : tempInt;
 		
-		LogFile.writeLog("pilusLength " + pilusLength);
 		tempDbl = getSpeciesParameterLength("pilusLength", 
 											aSpeciesRoot, speciesDefaults);
 		pilusLength = Double.isFinite(tempDbl) ? tempDbl : pilusLength;
-		LogFile.writeLog("pilusLength " + pilusLength);
 		
 		tempDbl = getSpeciesParameterTime("donationLag",
 											aSpeciesRoot, speciesDefaults);

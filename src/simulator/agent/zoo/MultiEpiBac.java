@@ -165,7 +165,7 @@ public class MultiEpiBac extends BactEPS
 		/*
 		 * Update the lineage.
 		 */
-		recordGenealogy(baby);
+		recordGenealogy(this, baby);
 		/*
 		 * Share mass of all compounds between two daughter cells and compute
 		 * new size.

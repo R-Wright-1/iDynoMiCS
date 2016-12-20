@@ -179,7 +179,7 @@ public class MultiEpisome extends InfoAgent
 	public MultiEpisome reset(MultiEpisome aPlasmid)
 	{
 		aPlasmid._generation = 0;
-		aPlasmid._genealogy = BigInteger.ZERO;
+		aPlasmid._genealogy = new StringBuffer("0");
 		aPlasmid.lastExchange = -1.0;
 		aPlasmid.lastReception = -1.0;
 		return aPlasmid;
@@ -194,7 +194,7 @@ public class MultiEpisome extends InfoAgent
 	{
 		// Lineage management : this is a new agent, he has no known parents
 		_generation = 0;
-		_genealogy = BigInteger.ZERO;
+		_genealogy = new StringBuffer("0");
 		//sonia 01.03.2010 changed from -1 to 0
 		lastExchange = 0.0;
 		lastReception = SimTimer.getCurrentTime();

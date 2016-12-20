@@ -69,12 +69,14 @@ public class Plasmid extends InfoAgent
 		Plasmid out = (Plasmid) super.clone();
 		out._speciesParam = this._speciesParam;
 		out._generation = this._generation;
-		out._genealogy = this._genealogy;
+		String tempString = new String(this._genealogy.toString());
+		out._genealogy = new StringBuffer(tempString);
 		out._testTally = this._testTally;
 		out._copyNumber = this._copyNumber;
 		out._tLastDonated = this._tLastDonated;
 		out._tReceived = this._tReceived;
 		out._numHT = this._numHT;
+		out._scanRate = this._scanRate;
 		return out;
 	}
 	
@@ -127,12 +129,13 @@ public class Plasmid extends InfoAgent
 	public void reset()
 	{
 		this._generation = 0;
-		this._genealogy = BigInteger.ZERO;
+		this._genealogy = new StringBuffer("0");
 		this._copyNumber = getSpeciesParam().copyNumDefault;
 		this._tLastDonated = -Double.MAX_VALUE;
 		this._tReceived = -Double.MAX_VALUE;
 		this._testTally = 0.0;
 		this._numHT = 0;
+		this._scanRate = 0.0;
 	}
 	
 	@Override
@@ -163,6 +166,11 @@ public class Plasmid extends InfoAgent
 	public double getPilusRange()
 	{
 		return this.getSpeciesParam().pilusLength;
+	}
+	
+	public int getPlasmidID()
+	{
+		return this.getSpeciesParam().plasmidID;
 	}
 	
 	public int getCopyNumber()
@@ -284,7 +292,7 @@ public class Plasmid extends InfoAgent
 	{
 		// static reference for counting number of tries
 		PlasmidBac._numTry++;
-		LogFile.writeLog("try to send Plasmid");
+//		LogFile.writeLog("try to send Plasmid");
 		/*
 		 * We're looking at a target, so decrement the _testTally to reflect this.
 		 */
@@ -313,7 +321,7 @@ public class Plasmid extends InfoAgent
 			baby._copyNumber = this._copyNumber;
 			this._numHT++; //Qian 10.2016: update the number of horizontal transfers for this plasmid (donor).
 			PlasmidBac._numTrans++;
-			LogFile.writeLog("numHT " + this.getBirthday() + " " + _numHT);
+//			LogFile.writeLog("numHT " + this.getBirthday() + " " + _numHT);
 			this._tLastDonated = baby._tReceived = SimTimer.getCurrentTime();
 			baby._testTally = 0.0; // jan: was this._testTally = 0.0; but a donor should be able to conjugate several times per timestep if _scanRate * AGENTTIMESTEP is > 1
 		}

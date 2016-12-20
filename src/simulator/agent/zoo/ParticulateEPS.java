@@ -95,8 +95,8 @@ public class ParticulateEPS extends LocatedAgent
 	public void init() 
 	{
 		// Lineage management : this is a new agent, he has no known parents
-		_generation = 0;
-		_genealogy = BigInteger.ZERO;
+		//_generation = 0;
+		//_genealogy = new StringBuffer("0");
 
 		// Determine the radius, volume and total mass of the agent
 		updateSize();

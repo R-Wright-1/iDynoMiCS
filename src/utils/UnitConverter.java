@@ -10,14 +10,14 @@ package utils;
 import java.awt.Color;
 
 /**
- * \brief Static class used to convert units (mass, length, time)
+ * \brief Static class used to convert units (mass, length, time) and derived units (volume)
  * 
  * Internal units:
  *  - Mass = femtograms (=1e-15 grams)
  *  - Length = micrometer (=1e-6 meter) 
  *  - Time = hour
  * 
- * @author Andreas D�tsch (andreas.doetsch@helmholtz-hzi.de), Helmholtz Centre
+ * @author Andreas Dötsch (andreas.doetsch@helmholtz-hzi.de), Helmholtz Centre
  * for Infection Research (Germany)
  * @author Laurent Lardon (lardonl@supagro.inra.fr), INRA, France
  */
@@ -25,13 +25,14 @@ public class UnitConverter
 {
 
 	/**
-     * \brief Takes a unit of time and returns a factor to multiply a parameter by to obtain the correct unit (hour).
+     * \brief Takes a unit, e.g. a time unit such as 'day' and returns a factor to multiply the parameter by to obtain the internal unit, e.g. hour.
      * 
      * @param timeUnit	Unit of time for which a conversion is required
-     * @return a factor to multiply to obtain the correct unit (hour)
+     * @return a factor to multiply to obtain the internal unit (hour)
      */
 	public static Double time(String timeUnit)
 	{
+		timeUnit.toLowerCase();
 		Double out = 1.0;
 		String unit = "";
 
@@ -60,11 +61,7 @@ public class UnitConverter
 	}
 
 	/**
-	 * \brief Takes a length unit and returns a double value of length for that unit
-	 * 
-	 * TODO 1 Converter?
-	 * 
-	 * Takes a length unit and returns a length value of mass for that unit
+	 * \brief Takes the entered length unit and returns a double value conversion factor to the internal length unit
 	 * 
 	 * @param lengthUnit	String containing a unit of length (m,cm,etc)
 	 * @return	Double value of length for that unit
@@ -199,9 +196,9 @@ public class UnitConverter
 	}
 
 	/**
-	 * \brief Takes a mass unit and returns a double value of volume for that unit
+	 * \brief Takes a volume unit and returns a double value conversion factor
 	 * 
-	 * Takes a mass unit and returns a double value of volume for that unit
+	 * TO DO: m is part of um, L could be lowercase l, -3 could occur
 	 * 
 	 * @param massUnit	String containing a unit of mass (m,L,etc)
 	 * @return	Double value of mass for that unit

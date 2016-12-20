@@ -113,7 +113,7 @@ public class Episome extends InfoAgent
 	{
 		// Lineage management : this is a new agent, he has no known parents
 		_generation = 0;
-		_genealogy = BigInteger.ZERO;
+		_genealogy = new StringBuffer("0");
 		lastExchange = -1.0;
 		lastReception = -1.0;
 	}

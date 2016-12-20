@@ -793,9 +793,13 @@ public class XMLParser implements Serializable
 	public Double getParamConcn(String paramName)
 	{
 		unit = new StringBuffer("");
+		LogFile.writeLog("before paramName: " + paramName + "  unit: " + unit);
 		value = getParamDbl(paramName, unit);
+		LogFile.writeLog("value: " + value);
 		value *= utils.UnitConverter.mass(unit.toString());
 		value *= utils.UnitConverter.volume(unit.toString());
+		LogFile.writeLog("later paramName: " + paramName + "  unit: " + unit);
+		LogFile.writeLog("value: " + value);
 		return value;
 	}
 	

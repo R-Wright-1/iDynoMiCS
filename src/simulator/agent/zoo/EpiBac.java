@@ -130,7 +130,7 @@ public class EpiBac extends BactEPS
 		// Create the new instance
 		EpiBac baby = sendNewAgent();
 		// Update the lineage
-		recordGenealogy(baby);
+		recordGenealogy(this, baby);
 		// Share mass of all compounds between two daughter cells and compute
 		// new size
 		divideCompounds(baby, getBabyMassFrac());

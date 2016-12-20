@@ -5,6 +5,7 @@ import idyno.SimTimer;
 import java.awt.Color;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -164,7 +165,10 @@ public class PlasmidBac extends BactEPS
 		 * Create the new instance and update the lineage.
 		 */
 		PlasmidBac baby = sendNewAgent();
-		recordGenealogy(baby);
+		//LogFile.writeLog("before this._genealogy: " + this._genealogy.length() + " baby._genealogy: " + baby._genealogy.length());
+		recordGenealogy(this, baby);
+		//LogFile.writeLog("after this._genealogy: " + this._genealogy.length() + " baby._genealogy: " + baby._genealogy.length());
+		
 		/*
 		 * Share mass of all compounds between two daughter cells and compute
 		 * new size.
@@ -531,7 +535,7 @@ public class PlasmidBac extends BactEPS
 		if (randyDbl < remainder) {
 			numScreen++;
 		}
-		LogFile.writeLog("probToScreen: " + probToScreen + "  numScreen: " + numScreen);
+//		LogFile.writeLog("probToScreen: " + probToScreen + "  numScreen: " + numScreen);
 		
 		// randomly pick nScreen bacteria
 		// Note that we use a random number generator that has a very long period so it is impossible to get duplicate random integers
@@ -805,7 +809,7 @@ public class PlasmidBac extends BactEPS
 	public StringBuffer sendHeader()
 	{
 		StringBuffer header = super.sendHeader();
-		header.append(",plasName,tEntry,numHT,numVT");
+		header.append(",plasmidID,tEntry,numHT,numVT,plasGenealogy");
 		return header;
 	}
 	
@@ -821,40 +825,27 @@ public class PlasmidBac extends BactEPS
 	@Override
 	public StringBuffer writeOutput()
 	{
+		//LogFile.writeLog("start of PlasmidBac.writeOutput");
 		StringBuffer tempString = super.writeOutput();
-		String plasName;
-		double tEntry;
-		int numHT, numVT;
+		// String plasName; replaced plasName with plasID because parsing strings in the XML output when almost all output are numbers is a pain
+		int plasID = -1;
+		double tEntry = -1.0;
+		int numHT = -1;
+		int numVT = -1;
+		String plasGenealogy = "-1";
+		//LogFile.writeLog("plasGenealogy before for loop: " + plasGenealogy);
 		for ( Plasmid aPlasmid : _plasmidHosted )
 		{
-			plasName = aPlasmid.getName();
+			plasID = aPlasmid.getPlasmidID();
 			tEntry = aPlasmid.getBirthday();
 			numHT = aPlasmid.getNumHT();
-			numVT= aPlasmid.getGeneration();
-			tempString.append(","+plasName + "," + tEntry + "," + numHT + "," + numVT);
+			numVT=  aPlasmid.getGeneration();
+			//LogFile.writeLog("All 4 in for loop: " +plasID + "," + tEntry + "," + numHT + "," + numVT);
+			//plasGenealogy = aPlasmid.getGenealogy().toString();
+			//LogFile.writeLog("plasGenealogy in for loop: " + plasGenealogy);
 		}
-		
-//		int nCopy;
-//		double r, d;
-//		the following for loop is never stepped through whole simulation
-//		for (String plasmidSpeciesName :  getPotentialPlasmidNames() )
-//		{
-			
-//			nCopy = 0;
-//			r = -Double.MAX_VALUE;
-//			d = -Double.MAX_VALUE;
-//			for ( Plasmid aPlasmid : _plasmidHosted )
-//			{
-//				if ( aPlasmid.isSpeciesName(plasmidSpeciesName) )
-//				{
-//					nCopy = aPlasmid.getCopyNumber();
-//					r = aPlasmid.getTimeRecieved();
-//					d = aPlasmid.getTimeLastDonated();
-//					LogFile.writeLog("has been stepped");
-//				}
-//			}
-//			tempString.append(","+nCopy+","+r+","+d);
-//		}
+		//LogFile.writeLog("plasGenealogy: " + plasGenealogy);
+		tempString.append(","+plasID + "," + tEntry + "," + numHT + "," + numVT);// + "," + plasGenealogy);
 		return tempString;
 	}
 	
