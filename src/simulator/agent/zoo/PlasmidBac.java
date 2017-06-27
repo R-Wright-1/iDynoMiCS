@@ -5,23 +5,16 @@ import idyno.SimTimer;
 import java.awt.Color;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 
-import com.sun.org.apache.xml.internal.serialize.OutputFormat.DTD;
-import com.sun.org.apache.xpath.internal.functions.FuncFloor;
-
 import simulator.Simulator;
-import simulator.agent.ActiveAgent;
-import simulator.agent.Agent;
 import simulator.agent.LocatedAgent;
 import simulator.agent.SpecialisedAgent;
 import simulator.agent.Species;
 import simulator.geometry.ContinuousVector;
-import sun.util.logging.resources.logging;
 import utils.ExtraMath;
 import utils.LogFile;
 import utils.XMLParser;
@@ -45,7 +38,7 @@ public class PlasmidBac extends BactEPS
 	 * Plasmids hosted by this bacterium.
 	 */
 	private LinkedList<Plasmid> _plasmidHosted = new LinkedList<Plasmid>();
-	
+
 	/**
 	 * All agents of type Bacterium to be collected once per timestep for use in chemostats only
 	 * For efficiency and for preventing newly born agents to conjugate
@@ -90,6 +83,7 @@ public class PlasmidBac extends BactEPS
 	public void initFromProtocolFile(Simulator aSimulator,
 													XMLParser aSpeciesRoot)
 	{
+		boolean isCreatedByDivision = false;
 		/*
 		 * Initialisation of the BactEPS, and its superclasses.
 		 */
@@ -99,7 +93,7 @@ public class PlasmidBac extends BactEPS
 		 * Create hosted plasmids.
 		 */
 		for (String aSpeciesName : aSpeciesRoot.getChildrenNames("plasmid"))
-			initPlasmid(aSpeciesName);
+			initPlasmid(aSpeciesName, isCreatedByDivision);
 		/*
 		 * Genealogy and size management.
 		 */
@@ -112,8 +106,9 @@ public class PlasmidBac extends BactEPS
 
 
 	@Override
-	public void initFromResultFile(Simulator aSim, String[] singleAgentData)
+	public void initFromResultFile(Simulator aSim, String[] singleAgentData, boolean createdByDivision)
 	{
+		boolean isCreatedByDivision = false;
 		/*
 		 * First, grab all the plasmid species names for reporting.
 		 */
@@ -138,7 +133,7 @@ public class PlasmidBac extends BactEPS
 				continue;
 			r = Double.parseDouble(singleAgentData[iDataStart+3*spCounter+1]);
 			d = Double.parseDouble(singleAgentData[iDataStart+3*spCounter+2]);
-			Plasmid aPlasmid = this.initPlasmid(plasmidName);
+			Plasmid aPlasmid = this.initPlasmid(plasmidName, isCreatedByDivision);
 			aPlasmid.setDetails(nCopy, r, d);
 		}
 		/*
@@ -147,19 +142,19 @@ public class PlasmidBac extends BactEPS
 		String[] remainingSingleAgentData = new String[iDataStart];
 		for ( int i = 0; i < iDataStart; i++ )
 			remainingSingleAgentData[i] = singleAgentData[i];
-		super.initFromResultFile(aSim, remainingSingleAgentData);
+		super.initFromResultFile(aSim, remainingSingleAgentData, createdByDivision);
 	}
 	
 	@Override
 	public PlasmidBac sendNewAgent() throws CloneNotSupportedException
 	{
 		PlasmidBac baby = (PlasmidBac) this.clone();
-		baby.init();
+		updateSize();
 		return baby;
 	}
 	
 	@Override
-	public void makeKid() throws CloneNotSupportedException
+	public void makeKid(boolean isCreatedByDivision) throws CloneNotSupportedException
 	{
 		/*
 		 * Create the new instance and update the lineage.
@@ -183,7 +178,7 @@ public class PlasmidBac extends BactEPS
 		/*
 		 * Now register the agent inside the guilds and the agent grid.
 		 */
-		baby.registerBirth();
+		baby.registerBirth(isCreatedByDivision);
 		/*
 		 * Both daughter cells have an identical list of plasmids hosted.
 		 * Loss-at-division could happen to either but not both, so first
@@ -209,13 +204,13 @@ public class PlasmidBac extends BactEPS
 	 * plasmid(s).
 	 * @see {@link #createNewAgent(ContinuousVector)}
 	 */
-	public void createNewAgent(ContinuousVector position, XMLParser root)
+	public void createNewAgent(ContinuousVector position, XMLParser root, boolean isCreatedByDivision)
 	{
 		try 
 		{
 			// Get a clone of the progenitor.
 			PlasmidBac baby = (PlasmidBac) sendNewAgent();
-			baby.giveName();
+			baby.setFamily();
 			baby.updateMass();
 			
 			/* If no mass defined, use the division radius to find the mass */
@@ -235,7 +230,7 @@ public class PlasmidBac extends BactEPS
 			baby._myDeathRadius = getDeathRadius();
 			
 			baby.setLocation(position);
-			baby.registerBirth();
+			baby.registerBirth(isCreatedByDivision);
 			
 			/*
 			 * This is the part specific to PlasmidBac!
@@ -244,7 +239,7 @@ public class PlasmidBac extends BactEPS
 			Plasmid plasmid;
 			for ( String plName : root.getChildrenNames("plasmid") )
 			{
-				plasmid = baby.initPlasmid(plName);
+				plasmid = baby.initPlasmid(plName, isCreatedByDivision);
 				plasmid.setDetails(1, SimTimer.getCurrentTime(), -Double.MAX_VALUE);
 			}
 		} 
@@ -290,6 +285,7 @@ public class PlasmidBac extends BactEPS
 		 * Check if any plasmids have illegal copy numbers.
 		 */
 		checkMissingPlasmid();
+		LogFile.writeLog("PlasmidBac.internalStep is called");
 		/*
 		 * BactEPS internalStep methods.
 		 */
@@ -338,7 +334,7 @@ public class PlasmidBac extends BactEPS
 	 * 
 	 * @param plasmidName Species name of the new Plasmid.
 	 */
-	private Plasmid initPlasmid(String plasmidName)
+	private Plasmid initPlasmid(String plasmidName, boolean isCreatedByDivision)
 	{
 		Plasmid aPlasmid = null;
 		try
@@ -346,7 +342,7 @@ public class PlasmidBac extends BactEPS
 			aPlasmid = (Plasmid) 
 							_species.getSpecies(plasmidName).sendNewAgent();
 			this.welcomePlasmid(aPlasmid);
-			aPlasmid.registerBirth();
+			aPlasmid.registerBirth(isCreatedByDivision);
 			
 		}
 		catch (CloneNotSupportedException e)
@@ -458,7 +454,9 @@ public class PlasmidBac extends BactEPS
 					multiply this probability by getScaledTone,
 					then work out how many others to attempt to conjugate with and put these into potentials
 					 */
-					LinkedList<Bacterium> partners = screenAllPartners(aPlasmid); //was buildNbh(aPlasmid); but need to separate chemostat from biofilm stuff
+					LinkedList<Bacterium> partners = screenAllPartners(aPlasmid);
+					//was buildNbh(aPlasmid); but need to separate chemostat from biofilm stuff
+					// screenAllPartners() adds to the _testTally and tryToSendPlasmid() subtracts
 					// iterate through all partners
 					// instead of calling seachConjugation we only do one line from searchConjugation (tryToSendPlasmid)
 					for (Bacterium aTarget: partners) {
@@ -466,10 +464,10 @@ public class PlasmidBac extends BactEPS
 					}
 				} else { // biofilm branch
 					HashMap<Bacterium, Double> 
-					potentials = new HashMap<Bacterium, Double>();
-					potentials = buildNbh(aPlasmid, aPlasmid.getPilusRange());
-					// searchConjugation called in either case, but differs internally
-					this.searchConjugation(aPlasmid, potentials);
+					potentialRecps = new HashMap<Bacterium, Double>();
+					potentialRecps = buildNbh(aPlasmid, aPlasmid.getPilusRange());
+					// searchConjugation calls Plasmid.updateTestTallyScaleScanRate() then calls tryToSendPlasmid() while it canScan()
+					this.searchConjugation(aPlasmid, potentialRecps);
 				}
 			}
 	}
@@ -529,12 +527,22 @@ public class PlasmidBac extends BactEPS
 //		LogFile.writeLog("tmpCollCoeff: " + tmpCollCoeff + "  allCellsButMe: " + _allCellsButMe);
 //		LogFile.writeLog("dt: " + dt + "  chemostatVol: " + chemostatVol + "probToScreen: " + probToScreen);
 
-		int numScreen = (int) Math.floor(probToScreen);
+		// _testTally accumulates remainders from past time steps, so we add probToScreen
+		// in tryToSendPlasmid(), _testTally is decremented every attempt to send a plasmid, so don't do it here
+		aPlasmid._testTally += probToScreen;
+		int numScreen = (int) Math.floor(aPlasmid._testTally);
+		
+		//int numScreen = (int) Math.floor(probToScreen + aPlasmid._testTally); // _testTally accumulates remainders from past time steps
+		//aPlasmid._testTally = probToScreen + aPlasmid._testTally - numScreen; // the new remainder is saved in _testTally
+		
+		/*int numScreen = (int) Math.floor(probToScreen);
 		double remainder = probToScreen - numScreen;
 		double randyDbl = ExtraMath.getUniRandDbl(0.0, 1.0);
 		if (randyDbl < remainder) {
 			numScreen++;
 		}
+		*/
+		
 //		LogFile.writeLog("probToScreen: " + probToScreen + "  numScreen: " + numScreen);
 		
 		// randomly pick nScreen bacteria
@@ -583,11 +591,11 @@ public class PlasmidBac extends BactEPS
 		 */
 		double donorRadius = this.getRadius(false);
 		/*
-		 * Find all neighbours in the Manhattan perimeter.
+		 * Find all potential neighbors in the neighboring grid elements by updating _myNeighbors
 		 */
 		this.getPotentialShovers(nbhRadius + donorRadius);
 		/*
-		 * Now remove agents that are too far (apply Euclidean perimeter).
+		 * Now remove agents that are too far away in Euclidean space rather than the grid
 		 */
 		double distance;
 		double recipRadius;
@@ -681,13 +689,14 @@ public class PlasmidBac extends BactEPS
 		if ( potentials.isEmpty() )
 			return;
 		/*
-		 * First update the plasmid's scan rate from its host's growth tone.
+		 * First scales the plasmid's scan rate from its host's growth tone.
 		 * The plasmid will calculate the number of neighbours it can
-		 * look at (there may be some overflow from the previous timestep).
+		 * look at per timestep.
+		 * Then add this to the _testTally (there may be some overflow from the previous timestep).
 		 * 
 		 * This is not used in chemostat simulations, which require different treatment of collisions
 		 */
-		aPlasmid.updateScanRate(this.getScaledTone());
+		aPlasmid.updateTestTallyScaleScanRate(this.getScaledTone());
 		/*
 		 * Find a recipient(s) and try to send them a plasmid.
 		 */
@@ -718,7 +727,7 @@ public class PlasmidBac extends BactEPS
 		Double lowTonus = getSpeciesParam().lowTonusCutoff; 
 		Double highTonus = getSpeciesParam().highTonusCutoff;
 		Double theTonus = growthTone();
-		Double scaledTone = 1.0;
+		Double scaledTone = 1.0; // default
 
 		/*
 		 * Too low, so return zero.
@@ -732,7 +741,7 @@ public class PlasmidBac extends BactEPS
 			scaledTone = (theTonus-lowTonus) / (highTonus-lowTonus);
 		/*
 		 * If neither of these is called we have a high tonus,
-		 * so just return maximum (same effect as no growth dependence).
+		 * so just return 1.0 (same effect as no growth dependence).
 		 */
 		return scaledTone;
 	}

@@ -562,7 +562,7 @@ public class Idynomics
 			// Get the full path to this file and add to the array
 			_activePath[iFile] = allFiles.get(iFile).getParent()+java.io.File.separator;
 			
-			//Edd: Added check for null _activePath, which was occuring when the launch scripts
+			//Edd: Added check for null _activePath, which was occurring when the launch scripts
 			//were invoked directly from the folder containing the protocol files in use.
 			if(_activePath[iFile].equals("null"+java.io.File.separator))
 			{
@@ -623,7 +623,7 @@ public class Idynomics
 			// bvm 10.2.2009
 			// create the output file directory using the protocol file title too
 			// The results are stored in the results directory - thus take the protocol file address and replace protocol with results
-			resultDir = _activePath[iSimul].replace("protocol", "results")
+			resultDir = _activePath[iSimul].replace("protocol", "result")
 			+ _protocolFile[iSimul].replace(".xml", "(")
 			+ LogFile.getDateFileName() + ")";
 

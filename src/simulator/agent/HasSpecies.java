@@ -23,7 +23,7 @@ public interface HasSpecies
 	 * 
 	 * @throws CloneNotSupportedException	Exception thrown if the object cannot be cloned
 	 */
-	public void createNewAgent() throws CloneNotSupportedException;
+	public void createNewAgent(boolean isCreatedByDivision) throws CloneNotSupportedException;
 
 	/**
 	 * \brief Obtain another instance of the same species (totally independent). The returned agent is NOT registered

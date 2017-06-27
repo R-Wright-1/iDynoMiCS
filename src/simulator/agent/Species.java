@@ -233,7 +233,7 @@ public class Species implements Serializable
 	 * created.
 	 * @param aSpRoot The XML mark-up group for a particular species being created.
 	 */
-	public void createPop(XMLParser aSpRoot, XMLParser initAreaRoot) 
+	public void createPop(XMLParser aSpRoot, XMLParser initAreaRoot, boolean isCreatedByDivision) 
 	{
 		//Qian 10.2016: Add targeted species' root to this function and this will be used later when checking the existence of plasmid. 
 		int howMany = initAreaRoot.getAttributeInt("number");
@@ -255,13 +255,13 @@ public class Species implements Serializable
 				
 				// Create the agent at these coordinates
 				if ( _progenitor instanceof PlasmidBac )
-					((PlasmidBac) _progenitor).createNewAgent(cc, initAreaRoot);
+					((PlasmidBac) _progenitor).createNewAgent(cc, initAreaRoot, isCreatedByDivision);
 				else
-					((LocatedAgent) _progenitor).createNewAgent(cc);
+					((LocatedAgent) _progenitor).createNewAgent(cc, isCreatedByDivision); // why not use initAreaRoot here as well?
 						 
 			}
 			else
-				_progenitor.createNewAgent();
+				_progenitor.createNewAgent(isCreatedByDivision);
 		
 		LogFile.writeLog(howMany+" agents of species "+speciesName+" for one-time attachment successfully created");
 		if ( _progenitor instanceof PlasmidBac )
@@ -286,7 +286,7 @@ public class Species implements Serializable
 	
 			
 	/**
-	 * \brief For self-attachment scenarios, initialises agents on the boundary layer rather than substrarum, and models their swim to the surface or biofilm
+	 * \brief For self-attachment scenarios, initialises agents on the boundary layer rather than substratum, and models their swim to the surface or biofilm
 	 * 
 	 * For self-attachment scenarios, the agents are initialised at the top of the boundary layer rather than on the substratum. These agents then 
 	 * perform a 'run and tumble' motion until they either attach to the substratum or forming biofilm. This method captures this behaviour for 
@@ -299,7 +299,7 @@ public class Species implements Serializable
 	 * @param spRoot	The Species markup from the protocol file for one particular species being initialised
 	 * @param numberAttachedInjectedAgents	The number of agents of this type that need to be created in this global timestep
 	 */
-	public void createBoundaryLayerPop(XMLParser spRoot, int numberAttachedInjectedAgents)
+	public void createBoundaryLayerPop(XMLParser spRoot, int numberAttachedInjectedAgents, boolean isCreatedByDivision)
 	{
 		LogFile.writeLog("\t\tAttempting to create "+numberAttachedInjectedAgents+
 							" agents of "+speciesName+" in the boundary layer");
@@ -370,9 +370,9 @@ public class Species implements Serializable
 						numberAttachedInjectedAgents--;
 						// Create the agent at these coordinates
 						if ( _progenitor instanceof PlasmidBac )
-							((PlasmidBac) _progenitor).createNewAgent(this.swimmingAgentPosition, spRoot);
+							((PlasmidBac) _progenitor).createNewAgent(this.swimmingAgentPosition, spRoot, isCreatedByDivision);
 						else
-							((LocatedAgent) _progenitor).createNewAgent(this.swimmingAgentPosition);
+							((LocatedAgent) _progenitor).createNewAgent(this.swimmingAgentPosition, isCreatedByDivision);
 						//System.out.println("Cell "+swimmingAgentPosition.toString()+" attached");
 						break;
 					case 2:
@@ -384,7 +384,7 @@ public class Species implements Serializable
 			else 
 			{
 				// If this isn't a located species, just create a new agent.
-				_progenitor.createNewAgent();
+				_progenitor.createNewAgent(isCreatedByDivision);
 			}
 		}
 		// Write the stats to the log file incase of interest

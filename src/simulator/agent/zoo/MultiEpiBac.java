@@ -137,16 +137,16 @@ public class MultiEpiBac extends BactEPS
 
 
 	@Override
-	public void createNewAgent(ContinuousVector position) {
+	public void createNewAgent(ContinuousVector position,boolean isCreatedByDivision) {
 		try {
 			// Clone the agent
 			MultiEpiBac baby = sendNewAgent();
 			baby.randomiseMass();
 			baby.setLocation(position);
-			baby.giveName();
+			baby.setFamily();
 			baby.updateSize();
 
-			baby.registerBirth();
+			baby.registerBirth(isCreatedByDivision);
 
 		} catch (CloneNotSupportedException e) {
 			System.out.println("at createNewAgent in EpiBac error " + e);
@@ -156,7 +156,7 @@ public class MultiEpiBac extends BactEPS
 	/* ______________________ CELL DIVISION ___________________ */
 
 	@Override
-	public void makeKid() throws CloneNotSupportedException 
+	public void makeKid(boolean isCreatedByDivision) throws CloneNotSupportedException 
 	{
 		/*
 		 * Create the new instance.
@@ -183,7 +183,7 @@ public class MultiEpiBac extends BactEPS
 		/*
 		 * Now register the agent inside the guilds and the agent grid.
 		 */
-		baby.registerBirth();
+		baby.registerBirth(isCreatedByDivision);
 		/*
 		 * For now the newborns' plasmids will be given the fixed copy number,
 		 * that is they'll have the same copy number as their progenitor.

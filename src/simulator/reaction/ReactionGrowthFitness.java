@@ -11,14 +11,18 @@ package simulator.reaction;
 import idyno.SimTimer;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 
 import org.jdom.Element;
 
 import Jama.Matrix;
 import simulator.Simulator;
 import simulator.agent.ActiveAgent;
-import simulator.agent.zoo.MultiEpiBac;
-import simulator.agent.zoo.MultiEpisomeParam;
+import simulator.agent.zoo.Plasmid;
+import simulator.agent.zoo.PlasmidBac;
+import simulator.agent.zoo.PlasmidBacParam;
+//import simulator.agent.zoo.MultiEpiBac;
+//import simulator.agent.zoo.MultiEpisomeParam;
 import simulator.reaction.kinetic.IsKineticFactor;
 import utils.ExtraMath;
 import utils.LogFile;
@@ -543,6 +547,100 @@ public class ReactionGrowthFitness extends Reaction{
 	 * @param anAgent
 	 */
 
+	
+	
+	public ArrayList<Double> setYield(ActiveAgent anAgent)
+	{
+		Double initialCost, rateDec, basalCost, plCost, timeSpentInSameHost, timeSpentInSameBacterium;
+		ArrayList<Double> plTotalCosts = new ArrayList<Double>();
+		PlasmidBacParam param=(PlasmidBacParam)anAgent.getSpeciesParam();
+		String costOfPlasmid = param.costOfPlasmid;
+		String hostID=param.hostID;
+		LogFile.writeLog("Current agent in setYield is " + anAgent.getFamily() + " " + anAgent.getGenealogy() + " " + hostID);
+				
+		if(anAgent instanceof PlasmidBac)
+		{	
+			PlasmidBac aPlasmidBac = (PlasmidBac) anAgent;
+			LinkedList<Plasmid> plasList = aPlasmidBac.getPlasmidsHosted();
+			if(!plasList.isEmpty())
+			{	
+				
+				for (Plasmid pl : plasList)
+				{
+					
+					initialCost = pl.getInitialCost();
+					rateDec = pl.getRateCostDecrease();
+					basalCost = pl.getBasalCost();
+					
+
+					//sonia: the cost of a plasmid increases additively as its copy number goes up
+					//jan: let's not make cost dependent on copy number as it is likely only one of many factors determining cost
+					//plCost = (initialCost*(Math.exp((-(rateDec*timeSpentInHost))))+ basalCost)*plCopyNum;
+					switch(costOfPlasmid){
+						case "plasmidAdapt" : 
+						timeSpentInSameHost = SimTimer.getCurrentTime() - pl.getTimeRecieved(); // Need to find the time when plasmid enters different host
+						plCost = initialCost * Math.exp(-rateDec * timeSpentInSameHost) + basalCost;
+						plTotalCosts.add(plCost);
+						break;
+					case "hostAdapt" :
+						timeSpentInSameBacterium = SimTimer.getCurrentTime() - pl.getTimeRecieved(); // In case of lost plasmid which infects the same bacterium again, need to consider the time spent in host before it was lost
+						plCost = initialCost * Math.exp(-rateDec * timeSpentInSameBacterium) + basalCost;
+						plTotalCosts.add(plCost);	
+						break;
+					case "constantCost" :  
+						plTotalCosts.add(initialCost);
+						break;
+					default : 
+						plTotalCosts.add(initialCost);
+						LogFile.writeLog("Warning (ReactionGrowthFitness): unrecognised case! "+ costOfPlasmid + "Set to constantCost");
+						break;
+					}
+				}
+				LogFile.writeLog(costOfPlasmid + " plTotalCosts at end of method: "+ plTotalCosts);
+			}
+		}
+		return plTotalCosts;	
+	}
+
+	
+	/* public ArrayList<Double> setYield(ActiveAgent anAgent)
+	{
+		Double initialCost, rateDec, basalCost, plCost, timeSpentInSameHost;
+		int plCopyNum;
+		ArrayList<Double> plTotalCosts = new ArrayList<Double>();
+
+		if(anAgent instanceof PlasmidBac)
+		{	
+			PlasmidBac aPlasmidBac = (PlasmidBac) anAgent;
+			LinkedList<Plasmid> plasList = aPlasmidBac.getPlasmidsHosted();
+			if(!plasList.isEmpty())
+			{	
+				for (Plasmid pl : plasList)
+				{
+					plCopyNum = pl.getCopyNumber();
+					initialCost = pl.getInitialCost();
+					LogFile.writeLog("ReactionGrowthFitness.setYield has initialCost: " + initialCost + "at time: " + SimTimer.getCurrentTime());
+					rateDec = pl.getRateCostDecrease();
+					LogFile.writeLog("rateDec: "+ rateDec);
+					basalCost = pl.getBasalCost();
+					LogFile.writeLog("basalCost: "+ basalCost);
+					timeSpentInSameHost = SimTimer.getCurrentTime() - pl.getTimeRecieved();
+					LogFile.writeLog("timeSpentInSameHost: "+ timeSpentInSameHost);
+
+					//sonia: the cost of a plasmid increases additively as its copy number goes up
+					//jan: let's not make cost dependent on copy number as it is likely only one of many factors determining cost
+					//plCost = (initialCost*(Math.exp((-(rateDec*timeSpentInHost))))+ basalCost)*plCopyNum;
+					plCost = initialCost * Math.exp(-rateDec * timeSpentInSameHost) + basalCost;
+					LogFile.writeLog("plCost: "+ plCost);
+					plTotalCosts.add(plCost);			
+				}
+				LogFile.writeLog("plTotalCosts at end of method: "+ plTotalCosts);
+			}
+		}
+		return plTotalCosts;	
+	}
+*/
+	/*
 	public ArrayList<Double> setYield(ActiveAgent anAgent)
 	{
 		Double initialCost, rateDec, basalCost, plCost, timeSpentInHost;
@@ -572,4 +670,5 @@ public class ReactionGrowthFitness extends Reaction{
 		}
 		return plTotalCosts;	
 	}
+	*/
 }

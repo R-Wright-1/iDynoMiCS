@@ -1,6 +1,5 @@
 package simulator.agent.zoo;
 
-import java.math.BigInteger;
 import java.util.ArrayList;
 
 import idyno.SimTimer;
@@ -26,6 +25,7 @@ public class Plasmid extends InfoAgent
 	 */
 	protected int _copyNumber;
 	
+		
 	/**
 	 * Simulation time (h) at which this plasmid last donated to another host.
 	 */
@@ -38,7 +38,8 @@ public class Plasmid extends InfoAgent
 	
 	/**
 	 * Tally variable for the number of potential recipients this plasmid can
-	 * scan in an agentTimeStep.
+	 * scan in an agentTimeStep. Carried over between time steps to avoid bias (ignoring left over time or not scanning enough agents in a chemostat)
+	 * Same variable used differently but independently in chemostat and biofilm mode
 	 */
 	protected double _testTally;
 	
@@ -69,8 +70,8 @@ public class Plasmid extends InfoAgent
 		Plasmid out = (Plasmid) super.clone();
 		out._speciesParam = this._speciesParam;
 		out._generation = this._generation;
-		String tempString = new String(this._genealogy.toString());
-		out._genealogy = new StringBuffer(tempString);
+		//String tempString = new String(this._genealogy.toString());
+		//out._genealogy = new StringBuffer(tempString);
 		out._testTally = this._testTally;
 		out._copyNumber = this._copyNumber;
 		out._tLastDonated = this._tLastDonated;
@@ -91,13 +92,12 @@ public class Plasmid extends InfoAgent
 	/**
 	 * Clone this plasmid and register the clone (in the species population).
 	 */
-	@Override
-	public void createNewAgent()
+	public void createNewAgent(boolean isCreatedByDivision)
 	{
 		try
 		{
 			Plasmid baby = this.sendNewAgent();
-			baby.registerBirth();
+			baby.registerBirth(isCreatedByDivision);
 		}
 		catch (CloneNotSupportedException e)
 		{
@@ -129,7 +129,7 @@ public class Plasmid extends InfoAgent
 	public void reset()
 	{
 		this._generation = 0;
-		this._genealogy = new StringBuffer("0");
+		//this._genealogy = new StringBuffer("0");
 		this._copyNumber = getSpeciesParam().copyNumDefault;
 		this._tLastDonated = -Double.MAX_VALUE;
 		this._tReceived = -Double.MAX_VALUE;
@@ -149,7 +149,7 @@ public class Plasmid extends InfoAgent
 	 * species.
 	 */
 	@Override
-	public void registerBirth()
+	public void registerBirth(boolean isCreatedByDivision)
 	{
 		this._species.notifyBirth();
 	}
@@ -176,6 +176,21 @@ public class Plasmid extends InfoAgent
 	public int getCopyNumber()
 	{
 		return this._copyNumber;
+	}
+	
+	public double getInitialCost()
+	{
+		return this.getSpeciesParam().initialCost;
+	}
+	
+	public double getBasalCost()
+	{
+		return this.getSpeciesParam().basalCost;
+	}
+	
+	public double getRateCostDecrease()
+	{
+		return this.getSpeciesParam().rateCostDecrease;
 	}
 	
 	public double getTimeRecieved()
@@ -276,7 +291,7 @@ public class Plasmid extends InfoAgent
 	 * @param scaledTone Scaled growth tone of the PlasmidBac hosting this 
 	 * plasmid.
 	 */
-	public void updateScanRate(double scaledTone)
+	public void updateTestTallyScaleScanRate(double scaledTone)
 	{
 		this._scanRate = this.getSpeciesParam().scanSpeed * scaledTone;
 		this._testTally +=  this._scanRate * _agentGrid.AGENTTIMESTEP;
@@ -290,13 +305,15 @@ public class Plasmid extends InfoAgent
 	 */
 	public void tryToSendPlasmid(LocatedAgent aTarget)
 	{
+		// tryToSendPlasmid() is only called when conjugating (conjugate() and searchConjugation())
+		boolean isCreatedByDivision = true;
 		// static reference for counting number of tries
 		PlasmidBac._numTry++;
 //		LogFile.writeLog("try to send Plasmid");
 		/*
 		 * We're looking at a target, so decrement the _testTally to reflect this.
 		 */
-		this._testTally -= 1.0; // also decremented in chemostat simulations but without consequences as _testTally not evaluated
+		this._testTally -= 1.0; // decremented in biofilm or chemostat simulations
 		/*
 		 * Unless this is a PlasmidBac, there can be no donation.
 		 */
@@ -316,7 +333,7 @@ public class Plasmid extends InfoAgent
 		try
 		{
 			Plasmid baby = this.sendNewAgent();
-			baby.registerBirth();
+			baby.registerBirth(isCreatedByDivision);
 			aPB.welcomePlasmid(baby);
 			baby._copyNumber = this._copyNumber;
 			this._numHT++; //Qian 10.2016: update the number of horizontal transfers for this plasmid (donor).
@@ -333,7 +350,7 @@ public class Plasmid extends InfoAgent
 	
 	/**
 	 * \brief Check whether this plasmid still has time to scan in this
-	 * timestep. canScan() is not called in a chemostat simulation, so _testTally is effectively ignored
+	 * timestep. canScan() is not called in a chemostat simulation.
 	 * 
 	 * @return boolean: true if there is time for another scan, false if not.
 	 */

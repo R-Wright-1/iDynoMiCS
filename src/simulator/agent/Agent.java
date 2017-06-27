@@ -47,11 +47,11 @@ public abstract class Agent implements Cloneable
 	protected int _generation = 0;
 	
 	/**
-	 * A sequence of 0 and 1 coding the lineage as a BitSet.
-	 * Whenever a cell divides, the original or 'mother' cell or old pole cell's _generation becomes appended with a 0,
-	 * and the daughter cell's _generation becomes appended with a 1.
+	 * A sequence of 0 and 1 coding the lineage
+	 * Whenever a cell divides, the original or 'mother' cell or old pole cell's _genealogy becomes appended with a 0,
+	 * and the daughter cell's _genealogy becomes appended with a 1.
 	 */
-	protected StringBuffer _genealogy = new StringBuffer("0"); // first progenitor starts with "0"
+	protected StringBuffer _genealogy = new StringBuffer("A"); // first progenitor starts with "0"
 	
 	/**
 	 * Integer noting the family which this agent belongs to
@@ -104,7 +104,7 @@ public abstract class Agent implements Cloneable
 	 * @param singleAgentData	Data from the result or initialisation file 
 	 * that is used to recreate this agent.
 	 */
-	public void initFromResultFile(Simulator aSim, String[] singleAgentData) 
+	public void initFromResultFile(Simulator aSim, String[] singleAgentData, boolean isCreatedByDivision) 
 	{
 		// read in info from the result file IN THE SAME ORDER AS IT WAS OUTPUT
 		_family     = Integer.parseInt(singleAgentData[0]);
@@ -121,12 +121,12 @@ public abstract class Agent implements Cloneable
 	 * @throws CloneNotSupportedException	Exception should the class not
 	 * implement Cloneable.
 	 */
-	public void makeKid() throws CloneNotSupportedException 
+	public void makeKid(boolean isCreatedByDivision) throws CloneNotSupportedException 
 	{
 
 		Agent anAgent = (Agent) this.clone();
 		// Now register the agent in the appropriate container
-		registerBirth();
+		registerBirth(isCreatedByDivision);
 	}
 
 	/**
@@ -147,7 +147,7 @@ public abstract class Agent implements Cloneable
 	 * Each agent must be referenced by one such container. Implemented by
 	 * classes that extend Agent.
 	 */
-	public abstract void registerBirth();
+	public abstract void registerBirth(boolean isCreatedByDivision);
 	
 	/**
 	 * \brief Perform the next timestep of the simulation for this agent.
@@ -159,18 +159,22 @@ public abstract class Agent implements Cloneable
 	{
 		// Qian 09/2016: avoid newborn agents to be stepped after birth
 		// since the mother cell has already grown this step
-		if(SimTimer.getCurrentTime().equals(_birthday))
-		{
-			//LogFile.chronoMessageOut("New born agent should not be stepped current timestep");
-			return;
-		}
-		else
-		{
+		
+		//	LogFile.writeLog("Agent.step currentTime, _birthday, _lastStep " + SimTimer.getCurrentTime() + " " + _birthday + " " + _lastStep);
+		//No longer need to check _birthday as babies are added to babyList and for step() method, only agentList is used.
+		//if(SimTimer.getCurrentTime().equals(_birthday))
+		//{
+		//	LogFile.writeLog("Prevented new born agent being stepped");
+		//	return;
+		//}
+		//else
+		//{
 			// Qian 09/2016: moved _lastStep = ... after internalStep()
 			// for testing of stepping in subclasses had to avoid updating _lastStep until internalStep() finished
 			internalStep();
 			_lastStep = SimTimer.getCurrentIter();
-		}
+			LogFile.writeLog("At end of Agent.step() _lastStep " + _lastStep);
+		//}
 	}
 	
 	/**
@@ -220,16 +224,15 @@ public abstract class Agent implements Cloneable
 	protected void recordGenealogy(Agent mum, Agent baby) 
 	{
 		//LogFile.writeLog("the start of recordGenealogy");
-		LogFile.writeLog("before mum._genealogy: " + mum._genealogy + " baby._genealogy: " + baby._genealogy);
+		//LogFile.writeLog("before mum._genealogy: " + mum._genealogy + " baby._genealogy: " + baby._genealogy);
 		
-		//LogFile.writeLog(" mum._genealogy: " + mum._genealogy);
 		String oldGenealogy = new String(mum._genealogy.toString());
+		LogFile.writeLog("Agent.recordGenealogy printing oldGenealogy " + oldGenealogy);
 		baby._genealogy = new StringBuffer(oldGenealogy);
-		mum._genealogy.append("0"); // 'mother' or older daughter
-		baby._genealogy.append("1"); // 'younger' daughter (the two daughters may be identical, but we need to distinguish them here)
+		mum._genealogy.append("M"); // 'mother' or older daughter
+		baby._genealogy.append("V"); // 'younger' daughter (the two daughters may be identical, but we need to distinguish them here)
 		
-		//LogFile.writeLog("mum._genealogy: " + mum._genealogy + "baby._genealogy: " + baby._genealogy);
-		LogFile.writeLog("after mum._genealogy: " + mum._genealogy + " baby._genealogy: " + baby._genealogy);
+		//LogFile.writeLog("after mum._genealogy: " + mum._genealogy + " baby._genealogy: " + baby._genealogy);
 
 		
 		// _generation counts the number of cell divisions, not distinguishing different daughter cells
@@ -252,10 +255,15 @@ public abstract class Agent implements Cloneable
 		return _family+"-"+_genealogy;
 	}
 	
+	public int getFamily()
+	{
+		return _family;
+	}
+	
 	/**
 	 * \brief Set the family for this agent, based on the next family.
 	 */
-	public void giveName() 
+	public void setFamily() 
 	{
 		_family = ++nextFamily;
 	}

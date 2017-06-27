@@ -81,10 +81,10 @@ public class ParticulateEPS extends LocatedAgent
 	 * @param singleAgentData	Data from the result or initialisation file that is used to recreate this agent
 	 */
 	@Override
-	public void initFromResultFile(Simulator aSim, String[] singleAgentData) 
+	public void initFromResultFile(Simulator aSim, String[] singleAgentData, boolean isCreatedByDivision) 
 	{
 		// this writes no unique values, so doesn't need unique reading-in
-		super.initFromResultFile(aSim,singleAgentData);
+		super.initFromResultFile(aSim,singleAgentData, isCreatedByDivision);
 	}
 
 	/**
@@ -125,14 +125,14 @@ public class ParticulateEPS extends LocatedAgent
 	 * Create a new Particulate EPS agent (who a priori is registered in at least one container)
 	 */
 	@Override
-	public void createNewAgent(ContinuousVector position)
+	public void createNewAgent(ContinuousVector position, boolean isCreatedByDivision)
 	{
 		try
 		{
 			ParticulateEPS baby = (ParticulateEPS) sendNewAgent();
 			baby.setLocation(position);
 			baby.updateSize();
-			baby.registerBirth();
+			baby.registerBirth(isCreatedByDivision);
 		}
 		catch (CloneNotSupportedException e)
 		{
@@ -151,6 +151,7 @@ public class ParticulateEPS extends LocatedAgent
 	 */
 	public boolean createByExcretion(Bacterium mother, double ratio) {
 		try {
+			boolean isCreatedByDivision = true;
 			ParticulateEPS baby = sendNewAgent();
 			baby._movement.reset();
 			baby.updateSize();
@@ -169,7 +170,7 @@ public class ParticulateEPS extends LocatedAgent
 
 			// Register the baby in the pathway guilds and the spatial grid
 			boolean sucess = !baby.willDie();
-			if (sucess) baby.registerBirth();
+			if (sucess) baby.registerBirth(isCreatedByDivision);
 			return sucess;
 
 		} catch (CloneNotSupportedException e) {
@@ -188,6 +189,7 @@ public class ParticulateEPS extends LocatedAgent
 	 */
 	public boolean createInertByExcretion(Bacterium mother, double ratio) {
 		try {
+			boolean isCreatedByDivision = true;
 			ParticulateEPS baby = sendNewAgent();
 			baby.updateSize();
 
@@ -203,9 +205,9 @@ public class ParticulateEPS extends LocatedAgent
 			baby._movement.add(_divisionDirection);
 
 			// Register the baby in the pathway guilds and the spatial grid
-			boolean sucess = !baby.willDie();
-			if (sucess) baby.registerBirth();
-			return sucess;
+			boolean success = !baby.willDie();
+			if (success) baby.registerBirth(isCreatedByDivision);
+			return success;
 
 		} catch (CloneNotSupportedException e) {
 			return false;

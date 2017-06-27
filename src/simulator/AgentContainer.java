@@ -57,6 +57,10 @@ public class AgentContainer
 	 */
 	public LinkedList<SpecialisedAgent> agentList;
 	
+	public LinkedList<SpecialisedAgent> babyList;
+	
+	private int nBabies; // for counting babies born during one step
+	
 	/**
 	 * Temporary containers used to store agents who will be added or removed.
 	 * Visibility public so that it can be accessed from LocatedGroup in
@@ -250,6 +254,7 @@ public class AgentContainer
 		mySim = aSimulator;
 		
 		agentList = new LinkedList<SpecialisedAgent>();
+		babyList = new LinkedList<SpecialisedAgent>();
 		// Optimised the resolution of the grid used to sort located agents
 		checkGridSize(aSimulator, root);
 
@@ -282,7 +287,6 @@ public class AgentContainer
 	/* ___________________ STEPPERS ________________________________ */
 
 	/**
-	 * \brief Iterates through each grid cell on the agent grid, stepping all agents that are within that grid space 
 	 * 
 	 * Iterates through each grid cell on the agent grid, stepping all agents that are within that grid space
 	 * 
@@ -292,10 +296,13 @@ public class AgentContainer
 	{
 		/* STEP AGENTS ________________________________________________ */
 		LogFile.chronoMessageIn();
-		Collections.shuffle(agentList, ExtraMath.random);
+		//Collections.shuffle(agentList, ExtraMath.random);
+		// Test that the babyList is empty at beginning of the AgentContainer.step()
+		
 		// Record values at the beginning
 		int nDeath = _agentToKill.size();
 		int nBirth = 0;
+		nBabies = 0;
 		int nAgentLastStep = agentList.size(); // Qian 09/2016: changed this variable name from nAgent to nAgentLastStep
 		double dt = 0.0;
 		double elapsedTime = 0.0;
@@ -303,9 +310,12 @@ public class AgentContainer
 		// for the local time step, choose the value according to which is best
 		double localdt = Math.min(AGENTTIMESTEP,globalTimeStep);
 
+		LogFile.writeLog("AgentContainer.step start nBabies, size of babyList " + nBabies + " " + babyList.size());
+
 		// Apply a shorter time step when visiting all the agents
 		while (elapsedTime < globalTimeStep)
 		{
+			LogFile.writeLog("AgentContainer.step while loop elapsedTime, globalTimeStep, currentTime " + elapsedTime + " " + globalTimeStep + " " + SimTimer.getCurrentTime());
 			// by default use the saved agent timestep
 			dt = localdt;
 
@@ -323,14 +333,28 @@ public class AgentContainer
 			if ( ! Simulator.isChemostat )
 				followPressure();
 			
+			//jan: we have changed this for loop now so that newborns are inserted into babyList not agentList
 			// Qian 09/2016: This for loop will also iterate over new born cells
 			// as these are inserted into the list and agentList.size() appears to be
 			// evaluated every iteration of the loop, not only at the first time
-			for ( int i = 0; i < agentList.size(); i++ ){
-				agentList.get(i).step();
+			
+			//modern for loop resulted in ConcurrentModification exception because newborns were added to the agentList while it was being iterated through
+			//now that we have separated agentList and babyList, the error no longer occurs
+			for (Agent anAgent : agentList) { 
+			//for ( int i = 0; i < agentList.size(); i++ ){
+			//	agentList.get(i).step();
+				anAgent.step();
 			}
+			
+			// Merge the agentList (old agents) with babyList (new agents)
+			LogFile.writeLog("AgentContainer.step after stepping all agents nBabies, size of babyList " + nBabies + " " + babyList.size());
+			LogFile.writeLog("AgentContainer.step before moving babies into agents, size of agentList " + agentList.size());
+			agentList.addAll(babyList);
+			babyList.clear();
+			LogFile.writeLog("AgentContainer.step after moving babies into agents, sizes of agentList and babyList " + agentList.size() + " " + babyList.size());
 
 			/*
+			 * jan: the reason this modern version of the for loop doesn't work is explained above
 			 * TODO Rob 16Apr2015: Java is complaining about
 			 * "java.util.ConcurrentModificationException"
 			 * here, so using a basic for loop until I work out what's wrong. 
@@ -338,7 +362,8 @@ public class AgentContainer
 				agent.step();
 			*/
 			
-			Collections.shuffle(agentList, ExtraMath.random);
+			//jan: shuffling at beginning of time step should be enough
+			//Collections.shuffle(agentList, ExtraMath.random);
 
 			if ( Simulator.isChemostat )
 				agentFlushedAway(dt);
@@ -643,11 +668,21 @@ public class AgentContainer
 	 * 
 	 * @param anAgent	New agent to add to the agent grid.
 	 */
-	public void registerBirth(SpecialisedAgent anAgent) 
+	public void registerBirth(SpecialisedAgent anAgent, boolean isCreatedByDivision) 
 	{
+		
+		//boolean IsCreatedByDivision=mySim.getIsCreatedByDivision();
+		//IsCreatedByDivision=mySim.getIsCreatedByDivision();
 		// Add the agent to agentList
-		agentList.add(anAgent);
-
+		//agentList.add(anAgent);
+		if (isCreatedByDivision){
+		babyList.add(anAgent);
+		nBabies++;
+		}
+		else {
+			agentList.add(anAgent);
+		}
+		
 		// Add the agent on the grid
 		if (anAgent instanceof LocatedAgent)
 		{

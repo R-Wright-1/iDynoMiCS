@@ -18,6 +18,7 @@ import simulator.Simulator;
 import simulator.SpatialGrid;
 import simulator.reaction.Reaction;
 import utils.ExtraMath;
+import utils.LogFile;
 import utils.XMLParser;
 
 /**
@@ -226,7 +227,7 @@ public abstract class ActiveAgent extends SpecialisedAgent implements HasReactio
 	 * that is used to recreate this agent.
 	 */
 	@Override
-	public void initFromResultFile(Simulator aSim, String[] singleAgentData)
+	public void initFromResultFile(Simulator aSim, String[] singleAgentData, boolean isCreatedByDivision)
 	{
 		/*
 		 * This routine will read data from the end of the singleAgentData
@@ -256,11 +257,11 @@ public abstract class ActiveAgent extends SpecialisedAgent implements HasReactio
 		String[] remainingSingleAgentData = new String[iDataStart];
 		for ( int i = 0; i < iDataStart; i++ )
 			remainingSingleAgentData[i] = singleAgentData[i];
-		super.initFromResultFile(aSim, remainingSingleAgentData);
+		super.initFromResultFile(aSim, remainingSingleAgentData, isCreatedByDivision);
 		
 		// Finally some creation-time calls.
 		updateSize();
-		registerBirth();		
+		registerBirth(isCreatedByDivision);		
 	}	
 	
 	/**
@@ -270,13 +271,13 @@ public abstract class ActiveAgent extends SpecialisedAgent implements HasReactio
 	 * Agent is not located.
 	 */
 	@Override
-	public void createNewAgent()
+	public void createNewAgent(boolean isCreatedByDivision)
 	{
 		try
 		{
 			ActiveAgent baby = (ActiveAgent) sendNewAgent();
 			// Register the baby in the pathway guilds.
-			baby.registerBirth();
+			baby.registerBirth(isCreatedByDivision);
 		}
 		catch (CloneNotSupportedException e)
 		{
@@ -291,11 +292,12 @@ public abstract class ActiveAgent extends SpecialisedAgent implements HasReactio
 	 * species is registered into the agent grid.
 	 */
 	@Override
-	public void registerBirth()
+	public void registerBirth(boolean isCreatedByDivision)
 	{
-		super.registerBirth();
+		super.registerBirth(isCreatedByDivision);
 		// Register the agent in the metabolic containers.
 		registerOnAllActiveReaction();
+		
 	}
 	
 	/**
@@ -367,6 +369,7 @@ public abstract class ActiveAgent extends SpecialisedAgent implements HasReactio
 	@Override
 	protected void internalStep()
 	{
+		LogFile.writeLog("ActiveAgent.internalStep is called");
 		grow();
 		updateSize();
 	}

@@ -74,7 +74,7 @@ public class AgingBac extends Bacterium
 		_speciesParam = new AgingParam();
 	}
 
-	public void initFromResultFile(Simulator aSim, String[] singleAgentData)
+	public void initFromResultFile(Simulator aSim, String[] singleAgentData, boolean initFromResultFile)
 	{
 		// Rewritten by Rob 10/1/11 to agree with subroutines in the agent hierarchy
 
@@ -98,10 +98,10 @@ public class AgingBac extends Bacterium
 		for (int i=0; i<iDataStart; i++)
 			remainingSingleAgentData[i] = singleAgentData[i];
 
-		super.initFromResultFile(aSim,remainingSingleAgentData);
+		super.initFromResultFile(aSim,remainingSingleAgentData, initFromResultFile);
 	}
 
-	public void makeKid() throws CloneNotSupportedException
+	public void makeKid(boolean isCreatedByDivision) throws CloneNotSupportedException
 	{
 		// Create the new instance
 		AgingBac baby = (AgingBac) sendNewAgent();
@@ -132,7 +132,7 @@ public class AgingBac extends Bacterium
 			_movement.add(_divisionDirection);
 		}
 		// Now register the agent inside the guilds and the agent grid
-		baby.registerBirth();
+		baby.registerBirth(isCreatedByDivision);
 		baby._netVolumeRate = 0.0;
 		baby.birthPlace = baby._location;
 

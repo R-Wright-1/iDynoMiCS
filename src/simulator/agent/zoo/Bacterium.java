@@ -153,11 +153,11 @@ public class Bacterium extends LocatedAgent implements Cloneable
 	 * that is used to recreate this agent.
 	 */
 	@Override
-	public void initFromResultFile(Simulator aSim, String[] singleAgentData)
+	public void initFromResultFile(Simulator aSim, String[] singleAgentData, boolean isCreatedByDivision)
 	{
 		// this writes no unique values, so doesn't need unique reading-in
 		// (for a template on how to read in data, look in LocatedAgent.java)
-		super.initFromResultFile(aSim,singleAgentData);
+		super.initFromResultFile(aSim,singleAgentData, isCreatedByDivision);
 	}
 
 	/**
@@ -166,10 +166,6 @@ public class Bacterium extends LocatedAgent implements Cloneable
 	 */
 	public void init() 
 	{
-		// Lineage management : this is a new agent, he has no known parents.
-		//_generation = 0;
-		//_genealogy = _genealogy.set(0, 0);
-		
 		// Calculate the radius, volume and total mass of the agent.
 		updateSize();
 	}
@@ -186,11 +182,9 @@ public class Bacterium extends LocatedAgent implements Cloneable
 	@Override
 	public Bacterium sendNewAgent() throws CloneNotSupportedException 
 	{
-		// Clone the agent and initialise it
+		// Clone the agent and initialise it by updating size, recordGenealogy is done in makeKid()
 		Bacterium baby = (Bacterium) this.clone();
-		recordGenealogy(this, baby);
 		baby.updateSize();
-		//baby.init();
 		return baby;
 	}
 
@@ -201,13 +195,13 @@ public class Bacterium extends LocatedAgent implements Cloneable
 	 * This agent is located on the relevant grid.
 	 */
 	@Override
-	public void createNewAgent(ContinuousVector position) 
+	public void createNewAgent(ContinuousVector position, boolean isCreatedByDivision) 
 	{
 		try 
 		{
 			// Get a clone of the progenitor
 			Bacterium baby = sendNewAgent();
-			baby.giveName();
+			baby.setFamily();
 
 			updateMass();
 			/* If no mass defined, use the division radius to find the mass */
@@ -229,7 +223,7 @@ public class Bacterium extends LocatedAgent implements Cloneable
 			//position.x += this._totalRadius;
 			
 			baby.setLocation(position);
-			baby.registerBirth();
+			baby.registerBirth(isCreatedByDivision);
 		}
 		catch (CloneNotSupportedException e)
 		{
@@ -262,9 +256,9 @@ public class Bacterium extends LocatedAgent implements Cloneable
 	 * cannot be cloned.
 	 */
 	@Override
-	public void makeKid() throws CloneNotSupportedException
+	public void makeKid(boolean isCreatedByDivision) throws CloneNotSupportedException
 	{
-		super.makeKid();
+		super.makeKid(isCreatedByDivision);
 	}
 
 	/* ___________________ STEP METHODS _______________________________ */
@@ -280,6 +274,7 @@ public class Bacterium extends LocatedAgent implements Cloneable
 	@Override
 	protected void internalStep()
 	{
+		LogFile.writeLog("Bacterium.internalStep is called");
 		/*
 		 * Compute mass growth over all compartments.
 		 */

@@ -215,14 +215,14 @@ public class MultiEpisome extends InfoAgent
      * 
      */
 	@Override
-	public void createNewAgent()
+	public void createNewAgent(boolean isCreatedByDivision)
 	{
 		try
 		{
 			// Clone the plasmid
 			MultiEpisome baby = this.sendNewAgent();
 			// Register the plasmid (species population)
-			baby.registerBirth();
+			baby.registerBirth(isCreatedByDivision);
 		}
 		catch (CloneNotSupportedException e)
 		{
@@ -231,7 +231,7 @@ public class MultiEpisome extends InfoAgent
 	}
 
 	@Override
-	public void registerBirth()
+	public void registerBirth(boolean isCreatedByDivision)
 	{
 		_species.notifyBirth();
 	}
@@ -242,7 +242,7 @@ public class MultiEpisome extends InfoAgent
 	 * Doesn't seem to be used
 	 */
 	@Override
-	public void makeKid() throws CloneNotSupportedException
+	public void makeKid(boolean isCreatedByDivision) throws CloneNotSupportedException
 	{
 		/*
 		 * Clone the plasmid.
@@ -251,7 +251,7 @@ public class MultiEpisome extends InfoAgent
 		/*
 		 * Register the plasmid (species population).
 		 */
-		baby.registerBirth();
+		baby.registerBirth(isCreatedByDivision);
 	}
 
 	/* ____________________________________________________________________ */

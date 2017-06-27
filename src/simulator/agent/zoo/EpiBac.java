@@ -89,7 +89,7 @@ public class EpiBac extends BactEPS
 
 
 	@Override
-	public void initFromResultFile(Simulator aSim, String[] singleAgentData)
+	public void initFromResultFile(Simulator aSim, String[] singleAgentData, boolean isCreatedByDivision)
 	{
 		/*
 		 * Find the position to start at by using length and number of values
@@ -111,7 +111,7 @@ public class EpiBac extends BactEPS
 		String[] remainingSingleAgentData = new String[iDataStart];
 		for ( int i = 0; i < iDataStart; i++ )
 			remainingSingleAgentData[i] = singleAgentData[i];
-		super.initFromResultFile(aSim, remainingSingleAgentData);
+		super.initFromResultFile(aSim, remainingSingleAgentData, isCreatedByDivision);
 	}
 
 	@Override
@@ -125,7 +125,7 @@ public class EpiBac extends BactEPS
 	/* ______________________ CELL DIVISION ___________________ */
 	
 	@Override
-	public void makeKid() throws CloneNotSupportedException
+	public void makeKid(boolean isCreatedByDivision) throws CloneNotSupportedException
 	{
 		// Create the new instance
 		EpiBac baby = sendNewAgent();
@@ -140,7 +140,7 @@ public class EpiBac extends BactEPS
 		baby._movement.subtract(_divisionDirection);
 		_movement.add(_divisionDirection);
 		// Now register the agent inside the guilds and the agent grid
-		baby.registerBirth();
+		baby.registerBirth(isCreatedByDivision);
 		// Both daughters cells have cloned plasmids ; apply the segregation
 		for (int i = 0; i < _plasmidHosted.size(); i++)
 			_plasmidHosted.get(i).segregation(baby._plasmidHosted.get(i));

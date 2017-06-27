@@ -119,7 +119,7 @@ public class BactAdaptable extends BactEPS
 	 * that is used to recreate this agent.
 	 */
 	@Override
-	public void initFromResultFile(Simulator aSim, String[] singleAgentData) 
+	public void initFromResultFile(Simulator aSim, String[] singleAgentData, boolean createdByDivision) 
 	{
 		/*
 		 * Find the position to start at by using length and number of values
@@ -146,7 +146,7 @@ public class BactAdaptable extends BactEPS
 		String[] remainingSingleAgentData = new String[iDataStart];
 		for (int i=0; i<iDataStart; i++)
 			remainingSingleAgentData[i] = singleAgentData[i];
-		super.initFromResultFile(aSim, remainingSingleAgentData);
+		super.initFromResultFile(aSim, remainingSingleAgentData, createdByDivision);
 	}
 
 	/**

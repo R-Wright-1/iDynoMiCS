@@ -133,14 +133,14 @@ public class Episome extends InfoAgent
 	 * 
 	 */
 	@Override
-	public void createNewAgent()
+	public void createNewAgent(boolean isCreatedByDivision)
 	{
 		try
 		{
 			// Clone the plasmid
 			Episome baby = this.sendNewAgent();
 			// Register the plasmid (species population)
-			baby.registerBirth();
+			baby.registerBirth(isCreatedByDivision);
 		}
 		catch (CloneNotSupportedException e)
 		{
@@ -152,7 +152,7 @@ public class Episome extends InfoAgent
 	 * TODO Is this any different from the super class? 
 	 */
 	@Override
-	public void registerBirth()
+	public void registerBirth(boolean isCreatedByDivision)
 	{
 		_species.notifyBirth();
 	}
@@ -160,7 +160,7 @@ public class Episome extends InfoAgent
 	/* __________________________ CELL DIVISION ____________________________ */
 
 	@Override
-	public void makeKid() throws CloneNotSupportedException
+	public void makeKid(boolean isCreatedByDivision) throws CloneNotSupportedException
 	{
 		/*
 		 * Clone the plasmid.
@@ -169,7 +169,7 @@ public class Episome extends InfoAgent
 		/*
 		 * Register the plasmid (species population).
 		 */
-		baby.registerBirth();
+		baby.registerBirth(isCreatedByDivision);
 	}
 	
 	/* _______________________________________________________________________ */

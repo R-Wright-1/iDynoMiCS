@@ -33,6 +33,23 @@ public class PlasmidParam extends ActiveParam
 	 */
 	public Integer copyNumDefault = 1;
 	
+	/** 
+	 * The initial cost of the plasmid
+	*/
+	protected double initialCost;
+	
+	/**
+	 * The minimal cost of a plasmid
+	 */
+	protected double basalCost;
+	
+	/**
+	 * Rate at which the fitness cost of a plasmid decreases over time due to co-evolution with the host.
+	 * When the plasmid enters the host for the first time, the fitness cost is equal to initial cost.
+	 * Then fitness cost evolves, exponentially decreasing to the final, basal cost, with rate constant _rateCostDecrease
+	 */
+	protected double rateCostDecrease;
+	
 	/**
 	 * Length of the pilus associated with this plasmid for conjugation 
 	 * (in um). Note that the pilus should reach between cell surfaces, not
@@ -127,6 +144,21 @@ public class PlasmidParam extends ActiveParam
 		tempInt = getSpeciesParameterInteger("copyNumDefault",
 											aSpeciesRoot, speciesDefaults);
 		copyNumDefault = ( tempInt == null ) ? copyNumDefault : tempInt;
+		
+		tempDbl = getSpeciesParameterDouble("initialCost",
+				aSpeciesRoot, speciesDefaults);
+		initialCost = Double.isFinite(tempDbl)? tempDbl : initialCost;
+		LogFile.writeLog("initialCost just read in from file:" + initialCost);
+
+		tempDbl = getSpeciesParameterDouble("basalCost",
+				aSpeciesRoot, speciesDefaults);
+		basalCost = Double.isFinite(tempDbl)? tempDbl : basalCost;
+		LogFile.writeLog("basalCost just read in from file:" + basalCost);
+		
+		tempDbl = getSpeciesParameterDouble("rateCostDecrease",
+				aSpeciesRoot, speciesDefaults);
+		rateCostDecrease = Double.isFinite(tempDbl)? tempDbl : rateCostDecrease;
+		LogFile.writeLog("rateCostDecrease just read in from file:" + rateCostDecrease);
 		
 		tempDbl = getSpeciesParameterLength("pilusLength", 
 											aSpeciesRoot, speciesDefaults);

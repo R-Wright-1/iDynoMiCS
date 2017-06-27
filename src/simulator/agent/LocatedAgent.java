@@ -166,13 +166,13 @@ public abstract class LocatedAgent extends ActiveAgent implements Cloneable
 	 * 
 	 * @param position	Vector stating where this agent should be located.
 	 */
-	public void createNewAgent(ContinuousVector position) 
+	public void createNewAgent(ContinuousVector position, boolean isCreatedByDivision) 
 	{
 		try 
 		{
 			// Get a clone of the progenitor.
 			LocatedAgent baby = (LocatedAgent) sendNewAgent();
-			baby.giveName();
+			baby.setFamily();
 			baby.updateSize();
 			
 			this._myDivRadius = getDivRadius();
@@ -184,7 +184,7 @@ public abstract class LocatedAgent extends ActiveAgent implements Cloneable
 			position.x += this._totalRadius;
 			
 			baby.setLocation(position);
-			baby.registerBirth();
+			baby.registerBirth(isCreatedByDivision);
 		} 
 		catch (CloneNotSupportedException e) 
 		{
@@ -218,10 +218,12 @@ public abstract class LocatedAgent extends ActiveAgent implements Cloneable
 	 * @param aSim	The simulation object used to simulate the conditions
 	 * specified in the protocol file.
 	 * @param singleAgentData	Data from the result or initialisation file
-	 * that is used to recreate this agent.
+	 *that is used to recreate this agent.
+	 * 
 	 */
+	
 	@Override
-	public void initFromResultFile(Simulator aSim, String[] singleAgentData) 
+	public void initFromResultFile(Simulator aSim, String[] singleAgentData, boolean isCreatedByDivision) 
 	{
 		/*
 		 * Find the position to start at.
@@ -261,7 +263,7 @@ public abstract class LocatedAgent extends ActiveAgent implements Cloneable
 		String[] remainingSingleAgentData = new String[iDataStart];
 		for (int i=0; i<iDataStart; i++)
 			remainingSingleAgentData[i] = singleAgentData[i];
-		super.initFromResultFile(aSim, remainingSingleAgentData);
+		super.initFromResultFile(aSim, remainingSingleAgentData, isCreatedByDivision);
 	}
 
 	
@@ -275,6 +277,7 @@ public abstract class LocatedAgent extends ActiveAgent implements Cloneable
 	@Override
 	protected void internalStep()
 	{
+		LogFile.writeLog("LocatedAgent.internalStep is called");
 		/*
 		 * Compute mass growth over all compartments.
 		 */
@@ -331,7 +334,8 @@ public abstract class LocatedAgent extends ActiveAgent implements Cloneable
 	{
 		try
 		{
-			makeKid();
+			boolean isCreatedByDivision = true;
+			makeKid(isCreatedByDivision);
 		}
 		catch (CloneNotSupportedException e)
 		{
@@ -381,7 +385,7 @@ public abstract class LocatedAgent extends ActiveAgent implements Cloneable
 	 * @throws CloneNotSupportedException Thrown if the agent cannot be cloned.
 	 */
 	@Override
-	public void makeKid() throws CloneNotSupportedException
+	public void makeKid(boolean isCreatedByDivision) throws CloneNotSupportedException
 	{
 		/*
 		 * Create the new instance.
@@ -416,7 +420,7 @@ public abstract class LocatedAgent extends ActiveAgent implements Cloneable
 		/*
 		 * Now register the agent inside the guilds and the agent grid.
 		 */
-		baby.registerBirth();
+		baby.registerBirth(isCreatedByDivision);
 		baby._netVolumeRate = 0.0;
 	}
 

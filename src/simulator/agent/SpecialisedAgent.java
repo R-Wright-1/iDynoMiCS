@@ -115,7 +115,7 @@ public abstract class SpecialisedAgent extends Agent implements HasSpecies, Clon
 	 * default values.
 	 */
 	@Override
-	public abstract void createNewAgent();
+	public abstract void createNewAgent(boolean isCreatedByDivision);
 
 	/**
 	 * \brief Obtain another instance of the same species (totally
@@ -134,10 +134,10 @@ public abstract class SpecialisedAgent extends Agent implements HasSpecies, Clon
 	 * species is registered into the agent grid.
 	 */
 	@Override
-	public void registerBirth()
+	public void registerBirth(boolean isCreatedByDivision)
 	{
 		_agentGrid = _species.currentSimulator.agentGrid;
-		_agentGrid.registerBirth(this);
+		_agentGrid.registerBirth(this, isCreatedByDivision);
 		_species.notifyBirth();
 	}
 
