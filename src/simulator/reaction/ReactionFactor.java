@@ -211,6 +211,7 @@ public class ReactionFactor extends Reaction
 		for (int iSolute : _mySoluteIndex)
 		{
 			_uptakeRate[iSolute] = mass*_specRate*_soluteYield[iSolute];
+
 		}
 		int iSolute;
 		for (int i = 0; i<_soluteFactor.length; i++)
@@ -220,6 +221,7 @@ public class ReactionFactor extends Reaction
 			{
 				_diffUptakeRate[iSolute] =
 								mass*marginalDiffMu[i]*_soluteYield[iSolute];
+			
 			}
 		}
 	}
@@ -428,6 +430,7 @@ public class ReactionFactor extends Reaction
 			{
 				s[i] = S.get(i,0);
 				dMUdT.set(i, 0, _soluteYield[i]);
+				
 			}
 			updateMarginalMu(s);
 			_specRate = computeSpecRate(s);
@@ -435,7 +438,7 @@ public class ReactionFactor extends Reaction
 		}
 		catch (Exception e)
 		{
-			LogFile.writeLog("Error in Reaction.calcdMUdT() : "+e);
+			LogFile.writeLogAlways("Error in Reaction.calcdMUdT() : "+e);
 		}
 		return dMUdT;
 	}
@@ -484,7 +487,7 @@ public class ReactionFactor extends Reaction
 		}
 		catch (Exception e)
 		{
-			LogFile.writeLog("Error in ReactionFactor.calcdMUdS() : "+e);
+			LogFile.writeLogAlways("Error in ReactionFactor.calcdMUdS() : "+e);
 		}
 		//LogFile.writeMatrix("dMUdY = ", dMUdY);
 		return dMUdY;

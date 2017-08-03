@@ -162,8 +162,11 @@ public class EpiBac extends BactEPS
 		// test if the EPS capsule has to be excreted
 		manageEPS();
 		// Test division and death treshold
-		if (willDivide())
+		if (willDivide()) {
+			LogFile.writeLog("EpiBac Division");
 			divide();
+			
+		}
 		if (willDie())
 			die(true);
 		// Try to conjugate
@@ -360,7 +363,7 @@ public class EpiBac extends BactEPS
 		}
 		catch (Exception e)
 		{
-			utils.LogFile.writeLog("Error met in EpiBac.receivePlasmid()");
+			utils.LogFile.writeLogAlways("Error met in EpiBac.receivePlasmid()");
 		}
 	}
 	

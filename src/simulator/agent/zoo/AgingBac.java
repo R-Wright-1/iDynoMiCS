@@ -187,7 +187,7 @@ public class AgingBac extends Bacterium
 		{
 			/* Warning note to log that an overflow has occurred. You can search
 			 * for this in the log0.txt file using the keyword "overflow" */
-			LogFile.writeLog("Warning: overflow of damage into younger sibling has occurred.");
+			LogFile.writeLogAlways("Warning: overflow of damage into younger sibling has occurred.");
 			
 			/* Baby's damaged growth = D-(1-R)T -> any overflow damage */
 			baby.particleMass[2] = totalDamGrowth - mumMassFrac*totalGrowth;
@@ -648,8 +648,11 @@ public class AgingBac extends Bacterium
 		/*
 		 * Divide if you have to EDD:
 		 */
-		if ( willDivide() && ! hasDied )
+		if ( willDivide() && ! hasDied ){
+			LogFile.writeLog("AgingBac Division");
 			divide();
+			
+		}
 		/*
 		 * Die if you have to. Here we kill off only those whose mass is
 		 * non-positive (see first 2 cases in willDie() and the catch in

@@ -18,6 +18,7 @@ import idyno.SimTimer;
 import simulator.agent.*;
 import simulator.agent.zoo.MultiEpiBac;
 import simulator.agent.zoo.MultiEpisome;
+import simulator.agent.zoo.Plasmid;
 import simulator.agent.zoo.PlasmidBac;
 import simulator.detachment.*;
 import simulator.diffusionSolver.DiffusionSolver;
@@ -58,6 +59,9 @@ public class AgentContainer
 	public LinkedList<SpecialisedAgent> agentList;
 	
 	public LinkedList<SpecialisedAgent> babyList;
+	
+//	private static LinkedList<String> plasmidList;
+	
 	
 	private int nBabies; // for counting babies born during one step
 	
@@ -240,7 +244,7 @@ public class AgentContainer
 			AGENTTIMESTEP = value;
 			if (AGENTTIMESTEP > SimTimer.getCurrentTimeStep()) 
 			{
-				LogFile.writeLog("ERROR: agentTimeStep in agentGrid markup MUST be "+
+				LogFile.writeLogAlways("ERROR: agentTimeStep in agentGrid markup MUST be "+
 						"less than or equal to the global timestep\n"+
 						"\tagentTimeStep was given as: "+AGENTTIMESTEP+"\n"+
 						"\tglobal time step is currently: "+SimTimer.getCurrentTimeStep());
@@ -280,7 +284,8 @@ public class AgentContainer
 			LogFile.writeLog(" " + _nTotal + " grid elements, resolution: " + _res
 					+ " micrometers");
 		}
-
+		
+		
 
 	}
 
@@ -296,7 +301,7 @@ public class AgentContainer
 	{
 		/* STEP AGENTS ________________________________________________ */
 		LogFile.chronoMessageIn();
-		//Collections.shuffle(agentList, ExtraMath.random);
+		Collections.shuffle(agentList, ExtraMath.random);
 		// Test that the babyList is empty at beginning of the AgentContainer.step()
 		
 		// Record values at the beginning
@@ -309,8 +314,6 @@ public class AgentContainer
 		double globalTimeStep = SimTimer.getCurrentTimeStep();
 		// for the local time step, choose the value according to which is best
 		double localdt = Math.min(AGENTTIMESTEP,globalTimeStep);
-
-		LogFile.writeLog("AgentContainer.step start nBabies, size of babyList " + nBabies + " " + babyList.size());
 
 		// Apply a shorter time step when visiting all the agents
 		while (elapsedTime < globalTimeStep)
@@ -333,11 +336,8 @@ public class AgentContainer
 			if ( ! Simulator.isChemostat )
 				followPressure();
 			
-			//jan: we have changed this for loop now so that newborns are inserted into babyList not agentList
-			// Qian 09/2016: This for loop will also iterate over new born cells
-			// as these are inserted into the list and agentList.size() appears to be
-			// evaluated every iteration of the loop, not only at the first time
-			
+			//jan: we are now inserting newborns into a babyList not agentList
+			//to prevent babies from being stepped in the timestep their mother was stepped
 			//modern for loop resulted in ConcurrentModification exception because newborns were added to the agentList while it was being iterated through
 			//now that we have separated agentList and babyList, the error no longer occurs
 			for (Agent anAgent : agentList) { 
@@ -347,14 +347,11 @@ public class AgentContainer
 			}
 			
 			// Merge the agentList (old agents) with babyList (new agents)
-			LogFile.writeLog("AgentContainer.step after stepping all agents nBabies, size of babyList " + nBabies + " " + babyList.size());
-			LogFile.writeLog("AgentContainer.step before moving babies into agents, size of agentList " + agentList.size());
+			// Merging works fine as well as counting babies (nBabies)
 			agentList.addAll(babyList);
 			babyList.clear();
-			LogFile.writeLog("AgentContainer.step after moving babies into agents, sizes of agentList and babyList " + agentList.size() + " " + babyList.size());
-
 			/*
-			 * jan: the reason this modern version of the for loop doesn't work is explained above
+			 * jan: the reason the modern version of the for loop didn't work is explained above
 			 * TODO Rob 16Apr2015: Java is complaining about
 			 * "java.util.ConcurrentModificationException"
 			 * here, so using a basic for loop until I work out what's wrong. 
@@ -362,9 +359,9 @@ public class AgentContainer
 				agent.step();
 			*/
 			
-			//jan: shuffling at beginning of time step should be enough
-			//Collections.shuffle(agentList, ExtraMath.random);
-
+			// Since babyList is added to the end of the agentList, without shuffling here again, older daughters are preferentially flushed away
+			Collections.shuffle(agentList, ExtraMath.random);
+		
 			if ( Simulator.isChemostat )
 				agentFlushedAway(dt);
 			
@@ -471,7 +468,7 @@ public class AgentContainer
 		// OUTPUT THE COUNT STATISTICS
 		LogFile.chronoMessageOut("Agents stepped/dead/born: " + nAgentLastStep + "/"
 				+ nDeath + "/" + nBirth);
-		LogFile.writeLog("_numTry " + PlasmidBac._numTry + "  _numTrans " + PlasmidBac._numTrans);
+		LogFile.writeLog("_numTry " + PlasmidBac._numTotTry + "  _numTrans " + PlasmidBac._numTotTrans);
 
 		
 		nAgentLastStep = agentList.size();
@@ -1140,8 +1137,7 @@ public class AgentContainer
 		/*
 		 * Status message to screen (not in quiet mode)
 		 */
-		LogFile.writeLog("size of agentToKill list at beginning of the"+
-								"writeReportDeath: "+ _agentToKill.size());
+		//LogFile.writeLog("size of agentToKill list at beginning of the"+"writeReportDeath: "+ _agentToKill.size());
 		/*
 		 * This will be our general-purpose buffer.
 		 */
@@ -1935,4 +1931,10 @@ public class AgentContainer
 	{
 		return _grid[gridVoxel];
 	}
+	
+	/**
+	 * \brief Creates a list of all different plasmids in the system, across all individuals
+	 * @param name
+	 */
+	
 }

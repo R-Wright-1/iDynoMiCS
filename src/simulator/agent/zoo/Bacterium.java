@@ -134,7 +134,7 @@ public class Bacterium extends LocatedAgent implements Cloneable
 		/* If no mass defined, use the division radius to find the mass */
 		if ( this._totalMass.equals(0.0))
 		{
-			guessMass();
+			setMassToHalfDivMass();
 			LogFile.writeLog("Guessing "+this.getSpecies().speciesName+
 										" initial mass at: "+this._totalMass);
 		}
@@ -208,8 +208,8 @@ public class Bacterium extends LocatedAgent implements Cloneable
 			// Note this should have been done already in initFromProtocolFile
 			if ( this._totalMass == 0.0 )
 			{
-				guessMass();
-				LogFile.writeLog("Warning: Bacterium.createNewAgent calling guessMass()");
+				setMassToHalfDivMass();
+				LogFile.writeLogAlways("Warning: Bacterium.createNewAgent sets mass to half division mass");
 			}
 			
 			// randomise its mass
@@ -227,7 +227,7 @@ public class Bacterium extends LocatedAgent implements Cloneable
 		}
 		catch (CloneNotSupportedException e)
 		{
-			utils.LogFile.writeLog("Error met in Bacterium.createNewAgent(): "+e);
+			utils.LogFile.writeLogAlways("Error met in Bacterium.createNewAgent(): "+e);
 		}
 	}
 
@@ -274,7 +274,7 @@ public class Bacterium extends LocatedAgent implements Cloneable
 	@Override
 	protected void internalStep()
 	{
-		LogFile.writeLog("Bacterium.internalStep is called");
+		//LogFile.writeLog("Bacterium.internalStep is called");
 		/*
 		 * Compute mass growth over all compartments.
 		 */
@@ -289,8 +289,11 @@ public class Bacterium extends LocatedAgent implements Cloneable
 		/*
 		 * Divide if you have to.
 		 */
-		if ( willDivide() )
+		if ( willDivide() ){
+			LogFile.writeLog("Bacterium Division");
 			divide();
+			
+		}
 		/*
 		 * Die if you have to.
 		 */
@@ -368,7 +371,7 @@ public class Bacterium extends LocatedAgent implements Cloneable
 	 * volume-at-division; volume is determined by the divRadius, or the
 	 * divRadius and the z-resolution if in a 2D simulation.
 	 */
-	public void guessMass()
+	public void setMassToHalfDivMass()
 	{
 		Double val = getSpeciesParam().divRadius;
 		/*

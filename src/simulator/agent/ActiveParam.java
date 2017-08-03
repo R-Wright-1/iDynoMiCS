@@ -13,6 +13,7 @@ import java.util.Arrays;
 
 import simulator.Simulator;
 import utils.ExtraMath;
+import utils.LogFile;
 import utils.XMLParser;
 
 /**
@@ -89,7 +90,6 @@ public class ActiveParam extends SpeciesParam
 		reactionKinetic = new Double[nReaction][];
 		soluteYield = ExtraMath.newDoubleArray(nReaction, nSolute);		
 		particleYield = ExtraMath.newDoubleArray(nReaction, nParticle);			
-		
 		int particleIndex;
 		Double density;
 		String name;

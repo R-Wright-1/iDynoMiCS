@@ -40,8 +40,8 @@ public class PlasmidBacParam extends BactEPSParam
 	 * (only applies in biofilm simulations).
 	 */
 	public boolean scaleScanProb = false;
+	
 	public String hostID;
-	public String costOfPlasmid;
 	/**
 	 * Colours for POV-Ray output.
 	 * 
@@ -54,6 +54,8 @@ public class PlasmidBacParam extends BactEPSParam
 	 * species. Useful in writing reports for output.
 	 */
 	public ArrayList<String> potentialPlasmids;
+	
+	private Simulator simulator;
 	
 	/*************************************************************************
 	 * CONSTRUCTORS
@@ -72,7 +74,7 @@ public class PlasmidBacParam extends BactEPSParam
 													XMLParser speciesDefaults)
 	{
 		super.init(aSim, aSpeciesRoot, speciesDefaults);
-		
+		simulator = aSim;
 		double tempDbl;
 		Boolean tempBool;
 		String tempStr = "";
@@ -111,13 +113,7 @@ public class PlasmidBacParam extends BactEPSParam
 		tempStr = getSpeciesParameterString ("hostID", aSpeciesRoot, speciesDefaults);
 		tempStr = (tempStr==null) ? "TheOneAndOnly" : tempStr;
 		hostID = tempStr;
-		LogFile.writeLog("hostID just read from file: " + tempStr);
-		
-		tempStr = getSpeciesParameterString ("costOfPlasmid", aSpeciesRoot, speciesDefaults);
-		tempStr = (tempStr==null) ? "Unknown" : tempStr;
-		costOfPlasmid = tempStr;
-		LogFile.writeLog("costOfPlasmid just read from protocol file: "+costOfPlasmid);
-				
+						
 		/*
 		 * Get the colours for POV-Ray output.
 		 */
@@ -151,7 +147,13 @@ public class PlasmidBacParam extends BactEPSParam
 	 */
 	public void addPotentialPlasmidName(String name)
 	{
-		if ( ! potentialPlasmids.contains(name) )
+		if ( ! potentialPlasmids.contains(name) ){
 			potentialPlasmids.add(name);
+			simulator.addPlasmidToGlobalList(name);
+		}
+		for (int i =0;i<potentialPlasmids.size();i++)
+		{
+			LogFile.writeLog("potential plasmids: " + potentialPlasmids.get(i));
+		}
 	}
 }

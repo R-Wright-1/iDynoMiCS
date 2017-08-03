@@ -3,7 +3,8 @@ package simulator.agent.zoo;
 import java.util.*;
 
 import simulator.Simulator;
-import simulator.geometry.FluctEnv;;
+import simulator.geometry.FluctEnv;
+import utils.LogFile;;
 
 /**
  * This class describes the different behaviour a specific agent can undergo according to its
@@ -50,7 +51,11 @@ public void internalStep() {
 		}
 		
 		// Divide if you have to
-		if (willDivide()) divide();
+		if (willDivide()) {
+			LogFile.writeLog("EpiBacEnv Division");
+			divide();
+			
+		}
 
 		// Die if you have to
 		if (willDie()) die(true);

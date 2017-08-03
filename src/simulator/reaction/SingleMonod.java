@@ -13,6 +13,7 @@ import simulator.Simulator;
 import simulator.agent.*;
 import utils.UnitConverter;
 import utils.ExtraMath;
+import utils.LogFile;
 import utils.XMLParser;
 
 

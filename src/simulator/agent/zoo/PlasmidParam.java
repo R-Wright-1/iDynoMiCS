@@ -1,6 +1,7 @@
 package simulator.agent.zoo;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
 
 import simulator.Simulator;
@@ -32,6 +33,11 @@ public class PlasmidParam extends ActiveParam
 	 * Default copy number of this plasmid in a host.
 	 */
 	public Integer copyNumDefault = 1;
+	/**
+	 * Type of cost of plasmid. Can be plasmidAdapt, hostAdapt, and constantCost.
+	 * (Transferred from PlasmidBacParam to here, otherwise transconjugants do not have information about type of plasmid cost)
+	 */
+	public String costOfPlasmid;
 	
 	/** 
 	 * The initial cost of the plasmid
@@ -112,6 +118,8 @@ public class PlasmidParam extends ActiveParam
 	 * of this species encode for.
 	 */
 	public ArrayList<Integer> reactionsEncoded = new ArrayList<Integer>();
+	
+	private static HashMap<Integer,String> plasmidIDAndNameList=new HashMap<>();
 		
 	/*************************************************************************
 	 * CONSTRUCTORS
@@ -132,6 +140,7 @@ public class PlasmidParam extends ActiveParam
 		
 		Integer tempInt;
 		Double tempDbl;
+		String tempStr;
 		LinkedList<XMLParser> tempXML;
 		
 		name = aSpeciesRoot.getName();
@@ -139,26 +148,25 @@ public class PlasmidParam extends ActiveParam
 		tempInt = getSpeciesParameterInteger("plasmidID",
 				aSpeciesRoot, speciesDefaults);
 		plasmidID = ( tempInt == null ) ? plasmidID : tempInt;
-		LogFile.writeLog("plasmidID: " + plasmidID);
-		
+		plasmidIDAndNameList.put(plasmidID, name);		
 		tempInt = getSpeciesParameterInteger("copyNumDefault",
 											aSpeciesRoot, speciesDefaults);
 		copyNumDefault = ( tempInt == null ) ? copyNumDefault : tempInt;
 		
 		tempDbl = getSpeciesParameterDouble("initialCost",
 				aSpeciesRoot, speciesDefaults);
-		initialCost = Double.isFinite(tempDbl)? tempDbl : initialCost;
-		LogFile.writeLog("initialCost just read in from file:" + initialCost);
-
+		tempStr = getSpeciesParameterString ("costOfPlasmid", aSpeciesRoot, speciesDefaults);
+		tempStr = (tempStr==null) ? "Unknown" : tempStr;
+		costOfPlasmid = tempStr;
+		initialCost = Double.isFinite(tempDbl) ? tempDbl : initialCost;
+		
 		tempDbl = getSpeciesParameterDouble("basalCost",
 				aSpeciesRoot, speciesDefaults);
-		basalCost = Double.isFinite(tempDbl)? tempDbl : basalCost;
-		LogFile.writeLog("basalCost just read in from file:" + basalCost);
-		
+		basalCost = Double.isFinite(tempDbl) ? tempDbl : basalCost;
+				
 		tempDbl = getSpeciesParameterDouble("rateCostDecrease",
 				aSpeciesRoot, speciesDefaults);
-		rateCostDecrease = Double.isFinite(tempDbl)? tempDbl : rateCostDecrease;
-		LogFile.writeLog("rateCostDecrease just read in from file:" + rateCostDecrease);
+		rateCostDecrease = Double.isFinite(tempDbl) ? tempDbl : rateCostDecrease;
 		
 		tempDbl = getSpeciesParameterLength("pilusLength", 
 											aSpeciesRoot, speciesDefaults);
@@ -174,7 +182,7 @@ public class PlasmidParam extends ActiveParam
 		
 		tempDbl = getSpeciesParameterDouble("lossProbability",
 											aSpeciesRoot, speciesDefaults);
-		lossProbability = Double.isFinite(tempDbl)? tempDbl : lossProbability;
+		lossProbability = Double.isFinite(tempDbl) ? tempDbl : lossProbability;
 
 		tempDbl = getSpeciesParameterDouble("transferProficiency",
 											aSpeciesRoot, speciesDefaults);
@@ -184,11 +192,11 @@ public class PlasmidParam extends ActiveParam
 											aSpeciesRoot, speciesDefaults);
 		scanSpeed = Double.isFinite(tempDbl) ? tempDbl : scanSpeed;
 		//collisionCoeff
-		LogFile.writeLog("collisionCoeff " + collisionCoeff);
+		//LogFile.writeLog("collisionCoeff " + collisionCoeff);
 		StringBuffer tempUnit = new StringBuffer("");
 		tempDbl = aSpeciesRoot.getParamDbl("collisionCoeff", tempUnit);
 		collisionCoeff = tempDbl*UnitConverter.time(tempUnit.toString());
-		LogFile.writeLog("collisionCoeff " + collisionCoeff);				
+		//LogFile.writeLog("collisionCoeff " + collisionCoeff);				
 				
 		/*
 		 * 
@@ -267,5 +275,11 @@ public class PlasmidParam extends ActiveParam
 			if ( (! plasmidCompatibilityMarkers.contains(p.getName())) || name.equals(p.getName()))
 				return false;
 		return true;    
+	}
+	/**
+	 * \brief When plasmidID is given, returns String plasmidName
+	 */
+	public static String getPlasmidName (int plasmidID){
+		return plasmidIDAndNameList.get(plasmidID);
 	}
 }

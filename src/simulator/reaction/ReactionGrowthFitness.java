@@ -245,26 +245,30 @@ public class ReactionGrowthFitness extends Reaction{
 		{
 			// TODO Rob 31 Jul 2014: Does this ever get called? Solver_chemostat doesn't seem to use it.
 			// (tdel*mass*Dil) is very strange
-			for (int iSolute : _mySoluteIndex)
+			for (int iSolute : _mySoluteIndex){
 				_uptakeRate[iSolute] = (tdel*mass*Dil) + (mass *_specRate*_soluteYield[iSolute] ) ;
+			}
 			int iSolute;
 			for (int i = 0; i<_soluteFactor.length; i++)
 			{
 				iSolute = _soluteFactor[i];
-				if(iSolute!=-1)	
+				if(iSolute!=-1)	{
 					_diffUptakeRate[iSolute] =(tdel*mass*Dil) + (mass*marginalDiffMu[i]*_soluteYield[iSolute])  ;	
+				}
 			}
 		}
 		else
 		{
-			for (int iSolute : _mySoluteIndex)
+			for (int iSolute : _mySoluteIndex){
 				_uptakeRate[iSolute] = mass*_specRate*_soluteYield[iSolute];
+			}
 			int iSolute;
 			for (int i = 0; i<_soluteFactor.length; i++)
 			{
 				iSolute = _soluteFactor[i];
-				if(iSolute!=-1)
+				if(iSolute!=-1){
 					_diffUptakeRate[iSolute] = mass*marginalDiffMu[i]*_soluteYield[iSolute];
+				}
 			}
 		}
 	}
@@ -370,7 +374,7 @@ public class ReactionGrowthFitness extends Reaction{
 				{
 					// The affected solute
 					for (int jIndex = 0; jIndex < _mySoluteIndex.length; jIndex++)
-					{
+					{	
 						jSol = _mySoluteIndex[jIndex];
 						dMUdY.set(jSol, iSol, marginalDiffMu[iFactor]*_soluteYield[jSol]);
 					}
@@ -453,6 +457,9 @@ public class ReactionGrowthFitness extends Reaction{
 	
 	/**
 	 * TODO Check that plFitness should be initialised as 0 rather than as 1
+	 * This method does not seem to make sense, the fitness cost should be 1 - cost
+	 * and should only be considered in computing specific growth rate, not again mass growth rate
+	 * Fortunately this is only called by MultiEpiBac which we don't use anymore
 	 * 
 	 * @param anAgent
 	 * @return the marginal growth rate (i.e the specific growth rate times the
@@ -462,8 +469,10 @@ public class ReactionGrowthFitness extends Reaction{
 	public Double computeMassGrowthRate(ActiveAgent anAgent)
 	{
 		Double plFitness = 0.0;
-		for (Double cost : setYield(anAgent))
+		for (Double cost : setYield(anAgent)){
 			plFitness -= cost;
+			
+		}
 		
 		//computing _specRate
 		computeSpecificGrowthRate(anAgent);
@@ -475,12 +484,12 @@ public class ReactionGrowthFitness extends Reaction{
 	public Double computeSpecGrowthRate(ActiveAgent anAgent)
 	{
 		Double plFitness = 1.0;
-		for (Double cost : setYield(anAgent))
+		for (Double cost : setYield(anAgent)){
 			plFitness -= cost;
+		}
 		
 		//computing _specRate
 		computeSpecificGrowthRate(anAgent);
-		
 		return _specRate*plFitness;
 	}
 	
@@ -551,124 +560,93 @@ public class ReactionGrowthFitness extends Reaction{
 	
 	public ArrayList<Double> setYield(ActiveAgent anAgent)
 	{
-		Double initialCost, rateDec, basalCost, plCost, timeSpentInSameHost, timeSpentInSameBacterium;
-		ArrayList<Double> plTotalCosts = new ArrayList<Double>();
-		PlasmidBacParam param=(PlasmidBacParam)anAgent.getSpeciesParam();
-		String costOfPlasmid = param.costOfPlasmid;
-		String hostID=param.hostID;
-		LogFile.writeLog("Current agent in setYield is " + anAgent.getFamily() + " " + anAgent.getGenealogy() + " " + hostID);
-				
-		if(anAgent instanceof PlasmidBac)
-		{	
-			PlasmidBac aPlasmidBac = (PlasmidBac) anAgent;
-			LinkedList<Plasmid> plasList = aPlasmidBac.getPlasmidsHosted();
-			if(!plasList.isEmpty())
-			{	
-				
-				for (Plasmid pl : plasList)
-				{
-					
-					initialCost = pl.getInitialCost();
-					rateDec = pl.getRateCostDecrease();
-					basalCost = pl.getBasalCost();
-					
-
-					//sonia: the cost of a plasmid increases additively as its copy number goes up
-					//jan: let's not make cost dependent on copy number as it is likely only one of many factors determining cost
-					//plCost = (initialCost*(Math.exp((-(rateDec*timeSpentInHost))))+ basalCost)*plCopyNum;
-					switch(costOfPlasmid){
-						case "plasmidAdapt" : 
-						timeSpentInSameHost = SimTimer.getCurrentTime() - pl.getTimeRecieved(); // Need to find the time when plasmid enters different host
-						plCost = initialCost * Math.exp(-rateDec * timeSpentInSameHost) + basalCost;
-						plTotalCosts.add(plCost);
-						break;
-					case "hostAdapt" :
-						timeSpentInSameBacterium = SimTimer.getCurrentTime() - pl.getTimeRecieved(); // In case of lost plasmid which infects the same bacterium again, need to consider the time spent in host before it was lost
-						plCost = initialCost * Math.exp(-rateDec * timeSpentInSameBacterium) + basalCost;
-						plTotalCosts.add(plCost);	
-						break;
-					case "constantCost" :  
-						plTotalCosts.add(initialCost);
-						break;
-					default : 
-						plTotalCosts.add(initialCost);
-						LogFile.writeLog("Warning (ReactionGrowthFitness): unrecognised case! "+ costOfPlasmid + "Set to constantCost");
-						break;
-					}
-				}
-				LogFile.writeLog(costOfPlasmid + " plTotalCosts at end of method: "+ plTotalCosts);
-			}
-		}
-		return plTotalCosts;	
-	}
-
-	
-	/* public ArrayList<Double> setYield(ActiveAgent anAgent)
-	{
 		Double initialCost, rateDec, basalCost, plCost, timeSpentInSameHost;
-		int plCopyNum;
+		String costOfPlasmid;
 		ArrayList<Double> plTotalCosts = new ArrayList<Double>();
-
-		if(anAgent instanceof PlasmidBac)
-		{	
+		PlasmidBacParam param = (PlasmidBacParam)anAgent.getSpeciesParam();
+		//hostID is not currently used but it would be useful in the case of plasmidAdapt
+		//String hostID = param.hostID;
+				
+		if (anAgent instanceof PlasmidBac) {
 			PlasmidBac aPlasmidBac = (PlasmidBac) anAgent;
 			LinkedList<Plasmid> plasList = aPlasmidBac.getPlasmidsHosted();
-			if(!plasList.isEmpty())
-			{	
-				for (Plasmid pl : plasList)
-				{
-					plCopyNum = pl.getCopyNumber();
-					initialCost = pl.getInitialCost();
-					LogFile.writeLog("ReactionGrowthFitness.setYield has initialCost: " + initialCost + "at time: " + SimTimer.getCurrentTime());
-					rateDec = pl.getRateCostDecrease();
-					LogFile.writeLog("rateDec: "+ rateDec);
-					basalCost = pl.getBasalCost();
-					LogFile.writeLog("basalCost: "+ basalCost);
-					timeSpentInSameHost = SimTimer.getCurrentTime() - pl.getTimeRecieved();
-					LogFile.writeLog("timeSpentInSameHost: "+ timeSpentInSameHost);
+			if (!plasList.isEmpty()) {
 
-					//sonia: the cost of a plasmid increases additively as its copy number goes up
-					//jan: let's not make cost dependent on copy number as it is likely only one of many factors determining cost
-					//plCost = (initialCost*(Math.exp((-(rateDec*timeSpentInHost))))+ basalCost)*plCopyNum;
-					plCost = initialCost * Math.exp(-rateDec * timeSpentInSameHost) + basalCost;
-					LogFile.writeLog("plCost: "+ plCost);
-					plTotalCosts.add(plCost);			
+				for (Plasmid pl : plasList) {
+					costOfPlasmid = pl.getCostOfPlasmid();
+					initialCost = pl.getInitialCost();
+					rateDec = pl.getRateCostDecrease();
+					basalCost = pl.getBasalCost();
+					// in case plasmid was present in a cell when cell was created
+					//we assume that it was there for ever, thus plasmid will have (smallest) basalCost.
+					if (pl.getTimeReceived() == -1) {
+						plCost = initialCost;
+						plTotalCosts.add(plCost);
+						continue;
+					} 
+					
+					else {
+						
+						// TODO: "plasmidAdapt" and "hostAdapt" versions are
+						// simplistic
+						// "plasmidAndHostAdapt" not implemented at all
+
+						switch (costOfPlasmid) {
+
+						case "plasmidAdapt":
+							/*
+							 * In this simple version of fitness cost evolution,
+							 * the plasmid evolves to adapt to the host while
+							 * the host does not change. Hence, when the plasmid
+							 * is lost, the host returns to full fitness
+							 * immediately (no addiction). Also, when the same
+							 * type of plasmid enters the host again later on,
+							 * the evolution of cost starts from scratch (there
+							 * is no memory of past plasmids considered). Cost
+							 * declines exponentially with rate constant rateDec
+							 * from intialCost+basalCost while the same plasmid
+							 * resides in the same host
+							 */
+							timeSpentInSameHost = SimTimer.getCurrentTime() - pl.getTimeReceived();
+							plCost = initialCost 
+									* Math.exp(-rateDec * timeSpentInSameHost) 
+									+ basalCost;
+							plTotalCosts.add(plCost);
+							break;
+
+						case "hostAdapt":
+							/*
+							 * Another simple version of fitness cost evolution
+							 * where only the host adapts to the plasmid while
+							 * one and the same plasmid is residing in the host.
+							 * Once the plasmid is lost, the fitness of the host
+							 * will return to maximum immediately with no memory
+							 * kept of past plasmids. If the same plasmid enters
+							 * the host again later, adaptation will start from
+							 * scratch.
+							 */
+							plCost = initialCost
+									* Math.exp(-rateDec * aPlasmidBac.getPlasmidMemories(pl).calcTimeSpentInSameHost())
+									+ basalCost;
+							plTotalCosts.add(plCost);
+							break;
+
+						case "constantCost":
+							plTotalCosts.add(initialCost);
+							LogFile.writeLog("initialCost: "+ initialCost );
+							break;
+						default:
+							plTotalCosts.add(initialCost);
+							LogFile.writeLogAlways("Warning (ReactionGrowthFitness): unrecognised case! "
+									+ costOfPlasmid + "Set to constantCost");
+							break;
+							
+						}
+					}
+
 				}
-				LogFile.writeLog("plTotalCosts at end of method: "+ plTotalCosts);
 			}
 		}
-		return plTotalCosts;	
+		return plTotalCosts;
 	}
-*/
-	/*
-	public ArrayList<Double> setYield(ActiveAgent anAgent)
-	{
-		Double initialCost, rateDec, basalCost, plCost, timeSpentInHost;
-		int plCopyNum;
-		ArrayList<Double> plTotalCosts = new ArrayList<Double>();
-		
-		if(anAgent instanceof MultiEpiBac)
-		{	
-			MultiEpiBac anEpiBac = (MultiEpiBac) anAgent;
-			//System.out.println("plasmid list size " + anEpiBac._plasmidHosted.size());
-			if(anEpiBac.plasmidHosted.size() > 0)
-			{	
-				for (int pl=0; pl< anEpiBac.plasmidHosted.size(); pl++)
-				{
-					MultiEpisomeParam plParam = anEpiBac.plasmidHosted.get(pl).getSpeciesParam();
-					initialCost = plParam.initialCost;
-					//System.out.println("plasmidCost is " + initialCost);
-					rateDec = plParam.rateDec;
-					basalCost = plParam.basalCost;
-					plCopyNum = anEpiBac.plasmidHosted.get(pl).getCopyNumber();
-					timeSpentInHost = SimTimer.getCurrentTime()-anEpiBac.plasmidHosted.get(pl).timeSpentInHost;
-					//sonia: the cost of a plasmid increases additively as its copy number goes up
-					plCost = (initialCost*(Math.exp((-(rateDec*timeSpentInHost))))+ basalCost)*plCopyNum;
-					plTotalCosts.add(plCost);					
-				}
-			}
-		}
-		return plTotalCosts;	
-	}
-	*/
 }

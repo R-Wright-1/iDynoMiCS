@@ -2,6 +2,7 @@ package simulator.agent.zoo;
 
 import idyno.SimTimer;
 import simulator.SpatialGrid;
+import utils.LogFile;
 
 /**
  * Laurent Lardon wrote the prototype AgingBac

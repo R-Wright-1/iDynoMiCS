@@ -37,6 +37,11 @@ public class Plasmid extends InfoAgent
 	protected double _tReceived;
 	
 	/**
+	 * Simulation time (h) at which this plasmid was lost by its host.
+	 */
+	protected double _tLost;
+	
+	/**
 	 * Tally variable for the number of potential recipients this plasmid can
 	 * scan in an agentTimeStep. Carried over between time steps to avoid bias (ignoring left over time or not scanning enough agents in a chemostat)
 	 * Same variable used differently but independently in chemostat and biofilm mode
@@ -70,12 +75,12 @@ public class Plasmid extends InfoAgent
 		Plasmid out = (Plasmid) super.clone();
 		out._speciesParam = this._speciesParam;
 		out._generation = this._generation;
-		//String tempString = new String(this._genealogy.toString());
-		//out._genealogy = new StringBuffer(tempString);
-		out._testTally = this._testTally;
+		String tempString = new String(this._genealogy.toString());
+		out._genealogy = new StringBuffer(tempString);
 		out._copyNumber = this._copyNumber;
 		out._tLastDonated = this._tLastDonated;
 		out._tReceived = this._tReceived;
+		out._testTally = this._testTally;
 		out._numHT = this._numHT;
 		out._scanRate = this._scanRate;
 		return out;
@@ -84,8 +89,16 @@ public class Plasmid extends InfoAgent
 	@Override
 	public Plasmid sendNewAgent() throws CloneNotSupportedException
 	{
+		// creating new Plasmid when initializing plasmid from protocol file or restart
+		// Plasmid.sendNewAgent() is called by Plasmid.createNewAgent(),
+		// which is called from Species.createPop() and Species.createBoundaryLayerPop() when birthdays in protocol file,
+		// and in Simulator.recreateSpecies() when restarting simulation from results file
+		// and in Species.sendNewAgent(), which is called from PlasmidBac.initPlasmid()
+		
+		// creating new Plasmid by conjugation
+		// and in Plasmid.tryToSendPlasmid(), which is called from PlasmidBac.conjugate() and searchConjugation()
 		Plasmid baby = (Plasmid) this.clone();
-		baby.reset();
+		//baby.reset();
 		return baby;
 	}
 	
@@ -96,7 +109,10 @@ public class Plasmid extends InfoAgent
 	{
 		try
 		{
+			//createNewAgent is called from Species.createPop()
+			//sendNewAgent just does clone()
 			Plasmid baby = this.sendNewAgent();
+			baby.reset();
 			baby.registerBirth(isCreatedByDivision);
 		}
 		catch (CloneNotSupportedException e)
@@ -128,11 +144,41 @@ public class Plasmid extends InfoAgent
 	 */
 	public void reset()
 	{
+		// reset() is used if plasmid created new from Species etc, not conjugation, when initAfterConjugation() is used
 		this._generation = 0;
-		//this._genealogy = new StringBuffer("0");
 		this._copyNumber = getSpeciesParam().copyNumDefault;
-		this._tLastDonated = -Double.MAX_VALUE;
-		this._tReceived = -Double.MAX_VALUE;
+		// this._tLastDonated = -Double.MAX_VALUE;
+		this._tLastDonated = -1;
+		//this._tReceived = -Double.MAX_VALUE;
+		this._tReceived = -1;
+		this._testTally = 0.0;
+		this._numHT = 0;
+		this._scanRate = 0.0;
+	}
+	
+	public void initAfterConjugation(PlasmidBac aPB)
+	{
+		// compare reset(), this appends _genealogy
+		this._generation = 0;
+		this._copyNumber = getSpeciesParam().copyNumDefault;
+		// this._tLastDonated should be changed in the Donor
+		this._tReceived = SimTimer.getCurrentTime();
+		this._testTally = 0.0;
+		this._numHT = 0;
+		this._scanRate = 0.0;
+		aPB.addPlasmid(this);
+	}
+	
+	public void init()
+	{	
+		this._generation = 0;
+		
+		this._genealogy.append("0");
+		this._copyNumber = getSpeciesParam().copyNumDefault;
+		// this._tLastDonated = -Double.MAX_VALUE;
+		this._tLastDonated= -1;
+		//this._tReceived = -Double.MAX_VALUE;
+		this._tReceived = -1;
 		this._testTally = 0.0;
 		this._numHT = 0;
 		this._scanRate = 0.0;
@@ -177,6 +223,10 @@ public class Plasmid extends InfoAgent
 	{
 		return this._copyNumber;
 	}
+	public String getCostOfPlasmid()
+	{
+		return this.getSpeciesParam().costOfPlasmid;
+	}
 	
 	public double getInitialCost()
 	{
@@ -193,7 +243,7 @@ public class Plasmid extends InfoAgent
 		return this.getSpeciesParam().rateCostDecrease;
 	}
 	
-	public double getTimeRecieved()
+	public double getTimeReceived()
 	{
 		return this._tReceived;
 	}
@@ -224,6 +274,13 @@ public class Plasmid extends InfoAgent
 		this._copyNumber = copyNum;
 		this._tReceived = tReceived;
 		this._tLastDonated = tLastDonated;
+	}
+	public void setInitFromResultFileDetails(double tEntry, StringBuffer genealogy, int numHT, int numVT){
+		
+		this._tReceived = tEntry;
+		this._numHT = numHT;
+		this._generation = numVT;
+		this._genealogy = genealogy;
 	}
 	
 	/**
@@ -295,7 +352,7 @@ public class Plasmid extends InfoAgent
 	{
 		this._scanRate = this.getSpeciesParam().scanSpeed * scaledTone;
 		this._testTally +=  this._scanRate * _agentGrid.AGENTTIMESTEP;
-		LogFile.writeLog("scaledTone " + scaledTone + " testTally " + _testTally);
+		//LogFile.writeLog("scaledTone " + scaledTone + " testTally " + _testTally);
 	}
 	
 	/**
@@ -306,16 +363,14 @@ public class Plasmid extends InfoAgent
 	public void tryToSendPlasmid(LocatedAgent aTarget)
 	{
 		// tryToSendPlasmid() is only called when conjugating (conjugate() and searchConjugation())
-		boolean isCreatedByDivision = true;
 		// static reference for counting number of tries
-		PlasmidBac._numTry++;
-//		LogFile.writeLog("try to send Plasmid");
+		PlasmidBac._numTotTry++;
 		/*
 		 * We're looking at a target, so decrement the _testTally to reflect this.
 		 */
 		this._testTally -= 1.0; // decremented in biofilm or chemostat simulations
 		/*
-		 * Unless this is a PlasmidBac, there can be no donation.
+		 * Unless this (aTarget) is a PlasmidBac, there can be no donation.
 		 */
 		if ( ! ( aTarget instanceof PlasmidBac) )
 			return;
@@ -332,15 +387,19 @@ public class Plasmid extends InfoAgent
 		 */
 		try
 		{
+			//sendNewAgent only does clone()
 			Plasmid baby = this.sendNewAgent();
-			baby.registerBirth(isCreatedByDivision);
-			aPB.welcomePlasmid(baby);
-			baby._copyNumber = this._copyNumber;
+			this._genealogy.append("D");
+			baby._genealogy.append("T");
+			// instead of normal reset()
+			baby.initAfterConjugation(aPB);
+			
+			//baby._copyNumber = this._copyNumber;
+			//_numHT has been checked and works properly 
 			this._numHT++; //Qian 10.2016: update the number of horizontal transfers for this plasmid (donor).
-			PlasmidBac._numTrans++;
-//			LogFile.writeLog("numHT " + this.getBirthday() + " " + _numHT);
-			this._tLastDonated = baby._tReceived = SimTimer.getCurrentTime();
-			baby._testTally = 0.0; // jan: was this._testTally = 0.0; but a donor should be able to conjugate several times per timestep if _scanRate * AGENTTIMESTEP is > 1
+			PlasmidBac._numTotTrans++;
+			this._tLastDonated = SimTimer.getCurrentTime();
+			//baby._testTally = 0.0; // jan: was this._testTally = 0.0; but a donor should be able to conjugate several times per timestep if _scanRate * AGENTTIMESTEP is > 1
 		}
 		catch (CloneNotSupportedException e)
 		{
@@ -377,8 +436,14 @@ public class Plasmid extends InfoAgent
 	 */
 	public void applySegregation()
 	{
-		if ( ExtraMath.getUniRandDbl() < getSpeciesParam().lossProbability )
+		if ( ExtraMath.getUniRandDbl() < getSpeciesParam().lossProbability ){
 			this._copyNumber = 0;
+			this._tLost = SimTimer.getCurrentTime();
+		}
+	}
+	// undo
+	public StringBuffer getGenealogy(){
+		return _genealogy;
 	}
 	
 }

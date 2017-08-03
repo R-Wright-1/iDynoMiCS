@@ -51,7 +51,7 @@ public abstract class Agent implements Cloneable
 	 * Whenever a cell divides, the original or 'mother' cell or old pole cell's _genealogy becomes appended with a 0,
 	 * and the daughter cell's _genealogy becomes appended with a 1.
 	 */
-	protected StringBuffer _genealogy = new StringBuffer("A"); // first progenitor starts with "0"
+	protected StringBuffer _genealogy = new StringBuffer("0"); // first progenitor starts with "0"
 	
 	/**
 	 * Integer noting the family which this agent belongs to
@@ -123,7 +123,6 @@ public abstract class Agent implements Cloneable
 	 */
 	public void makeKid(boolean isCreatedByDivision) throws CloneNotSupportedException 
 	{
-
 		Agent anAgent = (Agent) this.clone();
 		// Now register the agent in the appropriate container
 		registerBirth(isCreatedByDivision);
@@ -171,9 +170,8 @@ public abstract class Agent implements Cloneable
 		//{
 			// Qian 09/2016: moved _lastStep = ... after internalStep()
 			// for testing of stepping in subclasses had to avoid updating _lastStep until internalStep() finished
-			internalStep();
+		internalStep();
 			_lastStep = SimTimer.getCurrentIter();
-			LogFile.writeLog("At end of Agent.step() _lastStep " + _lastStep);
 		//}
 	}
 	
@@ -222,15 +220,17 @@ public abstract class Agent implements Cloneable
 	 * agent.
 	 */
 	protected void recordGenealogy(Agent mum, Agent baby) 
-	{
-		//LogFile.writeLog("the start of recordGenealogy");
-		//LogFile.writeLog("before mum._genealogy: " + mum._genealogy + " baby._genealogy: " + baby._genealogy);
-		
+	{	
+		//Recording genealogy now works since mum._genealogy = new StringBuffer(oldGenealogy); was added
+		//Before this, mum._genealogy.append("0"); would somehow change StringBuffer _genealogy = new StringBuffer("0"); declared in the class
+		//and thus, every time a new cell was made, it had one more 0 than the previous one.
+
 		String oldGenealogy = new String(mum._genealogy.toString());
-		LogFile.writeLog("Agent.recordGenealogy printing oldGenealogy " + oldGenealogy);
+		//LogFile.writeLog("Agent.recordGenealogy printing oldGenealogy " + oldGenealogy);
+		mum._genealogy = new StringBuffer(oldGenealogy);
 		baby._genealogy = new StringBuffer(oldGenealogy);
-		mum._genealogy.append("M"); // 'mother' or older daughter
-		baby._genealogy.append("V"); // 'younger' daughter (the two daughters may be identical, but we need to distinguish them here)
+		mum._genealogy.append("0"); // 'mother' or older daughter
+		baby._genealogy.append("1"); // 'younger' daughter (the two daughters may be identical, but we need to distinguish them here)
 		
 		//LogFile.writeLog("after mum._genealogy: " + mum._genealogy + " baby._genealogy: " + baby._genealogy);
 
@@ -242,6 +242,7 @@ public abstract class Agent implements Cloneable
 		// Rob 21/1/11: changed so that only the baby is given a new birthday
 		// this._birthday = SimTimer.getCurrentTime();
 		baby._birthday = SimTimer.getCurrentTime();
+
 	}
 
 	/**

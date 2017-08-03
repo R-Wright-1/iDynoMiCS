@@ -162,15 +162,14 @@ public abstract class ActiveAgent extends SpecialisedAgent implements HasReactio
 		reactionActive = new ArrayList<Integer>();
 		growthRate = ExtraMath.newDoubleArray(nReaction);
 		soluteYield = ExtraMath.newDoubleArray(nReaction, nSolute);
+
 		/* 
 		 * Do not initialise reactionKinetic using ExtraMath.newDoubleArray()
 		 * as the number of j-elements in each i-array varies. Each i-array is
 		 * cloned from the reaction mark up, so no need to fill with zeros now.
 		 */
 		reactionKinetic = new Double[nReaction][];
-		
-		particleYield = ExtraMath.newDoubleArray(nReaction, nParticle);
-		
+		particleYield = ExtraMath.newDoubleArray(nReaction, nParticle);		
 		Reaction aReaction;
 		/*
 		 * Read the XML file. Note that this is not a parser (yet) and so we
@@ -413,11 +412,13 @@ public abstract class ActiveAgent extends SpecialisedAgent implements HasReactio
 			catMass = particleMass[allReactions[reacIndex]._catalystIndex];
 			// get the growth rate in [fgX.hr-1]
 			growthRate[reacIndex] = allReactions[reacIndex].computeSpecGrowthRate(this);
+			// Growth rates are calculated properly and FitnessCost is applied
 			for (int i = 0; i<particleYield[reacIndex].length; i++)
 			{
 				if (allReactions[reacIndex].autocatalytic)
 				{
 					// Exponential growth/decay
+					
 					catYield = particleYield[reacIndex][allReactions[reacIndex]._catalystIndex];
 					deltaParticle[i] += catMass * (particleYield[reacIndex][i]/catYield)
 									    	* Math.expm1(catYield * growthRate[reacIndex]*tStep);

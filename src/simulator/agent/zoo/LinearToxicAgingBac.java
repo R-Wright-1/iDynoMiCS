@@ -1,6 +1,7 @@
 package simulator.agent.zoo;
 
 import idyno.SimTimer;
+import utils.LogFile;
 
 public class LinearToxicAgingBac extends AgingBac{
 

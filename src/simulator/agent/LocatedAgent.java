@@ -175,6 +175,7 @@ public abstract class LocatedAgent extends ActiveAgent implements Cloneable
 			baby.setFamily();
 			baby.updateSize();
 			
+			//jan: why change progenitor as this is used as a template when making a new agent from protocol file birthday directives
 			this._myDivRadius = getDivRadius();
 			baby._myDivRadius = getDivRadius();
 			baby._myDeathRadius = getDeathRadius();
@@ -204,6 +205,8 @@ public abstract class LocatedAgent extends ActiveAgent implements Cloneable
 	public void initFromProtocolFile(Simulator aSim, XMLParser xmlMarkUp) 
 	{	
 		super.initFromProtocolFile(aSim, xmlMarkUp);
+		//jan: is this used in addition to Species.createPop() calling getDivRadius()?
+		// couldn't find getDivRadius() to be called in Species.createPop()
 		_myDivRadius = getDivRadius();
 		_myDeathRadius = getDeathRadius();
 	}
@@ -228,7 +231,7 @@ public abstract class LocatedAgent extends ActiveAgent implements Cloneable
 		/*
 		 * Find the position to start at.
 		 */
-		int nValsRead = 5;
+		int nValsRead = 7;
 		int iDataStart = singleAgentData.length - nValsRead;
 		/*
 		 * This is necessary for the case when agents in a biofilm
@@ -255,8 +258,11 @@ public abstract class LocatedAgent extends ActiveAgent implements Cloneable
 		/*
 		 * These are randomly generated.
 		 */
-		_myDivRadius = getDivRadius();
-		_myDeathRadius = getDeathRadius();
+		
+		_myDivRadius = Double.parseDouble(singleAgentData[iDataStart+5]);
+		_myDeathRadius = Double.parseDouble(singleAgentData[iDataStart+6]);
+		//_myDivRadius = getDivRadius();
+		//_myDeathRadius = getDeathRadius();
 		/*
 		 * Now go up the hierarchy with the rest of the data.
 		 */
@@ -289,8 +295,11 @@ public abstract class LocatedAgent extends ActiveAgent implements Cloneable
 		/*
 		 * Divide if you have to.
 		 */
-		if ( willDivide() )
+		if (willDivide()) {
+
+			LogFile.writeLog("LocatedAgent Division");
 			divide();
+		}
 		/*
 		 * Die if you have to.
 		 */
@@ -313,7 +322,7 @@ public abstract class LocatedAgent extends ActiveAgent implements Cloneable
 		 * Check total mass is positive
 		 */
 		if ( _totalMass < 0.0 )
-			LogFile.writeLog("Warning: negative _totalMass in agent "+sendName());
+			LogFile.writeLogAlways("Warning: negative _totalMass in agent "+sendName());
 		/*
 		 * Compute _radius and _totalRadius from _volume and _totalVolume
 		 */
@@ -362,6 +371,7 @@ public abstract class LocatedAgent extends ActiveAgent implements Cloneable
 		_timeSinceLastDivisionCheck = 0.0;
 		/*
 		 * At this point we will actually check whether to divide.
+		 * getRadius(false) will return radius of cell without capsule
 		 */
 		return getRadius(false) > this._myDivRadius;
 	}
@@ -421,7 +431,8 @@ public abstract class LocatedAgent extends ActiveAgent implements Cloneable
 		 * Now register the agent inside the guilds and the agent grid.
 		 */
 		baby.registerBirth(isCreatedByDivision);
-		baby._netVolumeRate = 0.0;
+		//_netVolumeRate should be changed in divideCompounds for loop by multiplying 
+		//baby._netVolumeRate = 0.0;
 	}
 
 	/**
@@ -445,6 +456,8 @@ public abstract class LocatedAgent extends ActiveAgent implements Cloneable
 		/*
 		 * Update radius, mass, volumes and growth rates.
 		 */
+		baby._netVolumeRate=_netVolumeRate * babyMassFrac;
+		this._netVolumeRate=_netVolumeRate * (1-babyMassFrac);
 		updateSize();
 		baby.updateSize();
 		updateGrowthRates();
@@ -908,7 +921,8 @@ public abstract class LocatedAgent extends ActiveAgent implements Cloneable
 		StringBuffer tempString = super.sendHeader();
 		
 		// location info and radius
-		tempString.append(",locationX,locationY,locationZ,radius,totalRadius");
+		// division and death radius added to avoid jump in number of divisions after starting simulation from result file
+		tempString.append(",locationX,locationY,locationZ,radius,totalRadius,divisionRadius,deathRadius");
 		
 		return tempString;
 	}
@@ -928,7 +942,8 @@ public abstract class LocatedAgent extends ActiveAgent implements Cloneable
 		
 		// location info and radius
 		tempString.append(","+_location.x+","+_location.y+","+_location.z+",");
-		tempString.append(_radius+","+_totalRadius);
+		tempString.append(_radius+","+_totalRadius+",");
+		tempString.append(_myDivRadius+","+_myDeathRadius);
 		
 		return tempString;
 	}

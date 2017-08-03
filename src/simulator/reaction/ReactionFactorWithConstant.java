@@ -234,16 +234,19 @@ public class ReactionFactorWithConstant extends Reaction
 		
 		if(Simulator.isChemostat)
 		{
-			for (int iSolute : _mySoluteIndex)
+			for (int iSolute : _mySoluteIndex){
 				_uptakeRate[iSolute] = (tdel*mass*Dil) + (mass *_specRate*_soluteYield[iSolute]);
+			
+			}
 			int iSolute;
 			for (int i = 0; i<_soluteFactor.length; i++)
 			{
 				iSolute = _soluteFactor[i];
-				if(iSolute!=-1)
+				if(iSolute!=-1){
 					_diffUptakeRate[iSolute] = (tdel*mass*Dil) + (mass*marginalDiffMu[i]*_soluteYield[iSolute]);
+					
+				}
 			}
-
 		}
 		else
 		{

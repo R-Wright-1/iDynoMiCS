@@ -225,6 +225,7 @@ public abstract class Reaction implements Serializable
 		for (int iSolute = 0; iSolute < _soluteList.length; iSolute++)
 		{
 			yield = parser.getParamSuchDbl("solute", _soluteList[iSolute].getName());
+			LogFile.writeLogAlways("yield in Reaction.initFromAgent  "+ yield);
 			if ( ! yield.isNaN() )
 				anAgent.soluteYield[reactionIndex][iSolute] = yield;
 		}
@@ -233,6 +234,7 @@ public abstract class Reaction implements Serializable
 		for (int iParticle = 0; iParticle<aSim.particleDic.size(); iParticle++)
 		{
 			yield = parser.getParamSuchDbl("particle", aSim.particleDic.get(iParticle));
+			LogFile.writeLogAlways("yield in Reaction.initFromAgent  "+ yield);
 			if ( ! yield.isNaN() )
 				anAgent.particleYield[reactionIndex][iParticle] = yield;
 		}
@@ -354,15 +356,15 @@ public abstract class Reaction implements Serializable
 		 * reaction, and hence whether the reaction is autocatalytic or not.
 		 * This is important in ActiveAgent.grow()
 		 */
+		
+		//'if' works fine 
 		if (_particleYield[_catalystIndex].equals(0.0))
 		{
 			autocatalytic = false;
-			LogFile.writeLog("Reaction "+reactionIndex+" is not autocatalyic");
 		} 
 		else 
 		{
 			autocatalytic = true;
-			LogFile.writeLog("Reaction "+reactionIndex+" is autocatalyic");
 		}
 	}
 
@@ -640,6 +642,8 @@ public abstract class Reaction implements Serializable
 	public Double[] getSoluteYield()
 	{
 		return _soluteYield;
+		
+		
 	}
 	
 	/**

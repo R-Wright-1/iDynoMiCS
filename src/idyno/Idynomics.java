@@ -69,8 +69,11 @@ public class Idynomics
 	/**
 	 * Version number of this iteration of iDynoMiCS - required by update
 	 * procedure.
+	 * 
+	 * Version 1.4 added new aging code (adaptive repair)
+	 * Version 1.5 added new plasmid code (merged Brian and Sonia's versions and many improvements)
 	 */
-	public static Double version_number  = 1.3;
+	public static Double version_number  = 1.5;
 	
 	/**
 	 * Frame to display information regarding a software update, if there is
@@ -392,11 +395,11 @@ public class Idynomics
 				/* The following lines write out the random number state file at the end of each simulation
 				 * The reason this is done here, is because it is guaranteed to be the absolute last thing that's done before
 				 * the next simulation is called. Chinmay 11/8/2009 */
-				
+				// random.state no longer written to protocols folder, but into a result folder
 				try 
 				{
 					FileOutputStream randomFileOutputStream = new
-						FileOutputStream(currentPath+File.separator+"random.state");
+						FileOutputStream(aSimulator.getResultPath()+File.separator+"random.state");
 					ObjectOutputStream randomObjectOutputStream = new ObjectOutputStream(randomFileOutputStream);
 					randomObjectOutputStream.writeObject(ExtraMath.random);
 					randomObjectOutputStream.close();

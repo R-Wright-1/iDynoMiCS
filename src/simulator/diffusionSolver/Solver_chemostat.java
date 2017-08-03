@@ -471,7 +471,7 @@ public class Solver_chemostat extends DiffusionSolver
 				}
 				else
 					break;
-				LogFile.writeLog("error = "+error+", tol = "+tol+", h = "+h);
+				LogFile.writeLogAlways("error = "+error+", tol = "+tol+", h = "+h);
 			}// End of while(true) 
 			/*
 			 * If there were no failures compute a new h. We use the same

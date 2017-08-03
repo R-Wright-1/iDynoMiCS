@@ -244,7 +244,10 @@ public class ParticulateEPS extends LocatedAgent
 		updateSize();
 
 		// Divide if you have to
-		if (willDivide()) divide();
+		if (willDivide()){ 
+			divide();
+			LogFile.writeLog("ParticulateEPS Division");
+		}
 
 		// Die if you have to
 		if (willTransfer()) transferBiomass();

@@ -12,6 +12,7 @@ import Jama.Matrix;
 import simulator.Simulator;
 import simulator.agent.*;
 import utils.ExtraMath;
+import utils.LogFile;
 import utils.XMLParser;
 
 @Deprecated

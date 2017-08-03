@@ -240,6 +240,10 @@ public class Simulator {
 	 * simulation.
 	 */
 	public ArrayList<String> plasmidList = new ArrayList<String>();
+	/**
+	 * List of different plasmids that are in the system
+	 */
+	private static LinkedList<String> allPlasmidList=new LinkedList<>(); 
 
 	/**
 	 * List of all the scan speeds of all plasmids, if creating a MultiEpisome
@@ -252,11 +256,13 @@ public class Simulator {
 	 */
 	public AgentContainer agentGrid;
 	
+	
 	/**
 	 * Chart object used by the createCharts method. Deprecated (KA 09/04/13)
 	 * TODO Consider deleting as part of graphics overhaul.
 	 */
 	private Chart _graphics;
+	
 
 	/*************************************************************************
 	 * CLASS METHODS
@@ -496,7 +502,7 @@ public class Simulator {
 		 * Now we need to determine if a random.state file exists. This is used
 		 * to initialise the random number generator, if it exists.
 		 */
-		File randomFile = new File(Idynomics.currentPath + File.separator + "random.state");
+		File randomFile = new File(_resultPath + File.separator + "random.state");
 		if (randomFile.exists()) {
 			/*
 			 * If a file called random.state exists, the random number generator
@@ -507,7 +513,7 @@ public class Simulator {
 			FileInputStream randomFileInputStream;
 			ObjectInputStream randomObjectInputStream;
 			try {
-				randomFileInputStream = new FileInputStream(Idynomics.currentPath + File.separator + "random.state");
+				randomFileInputStream = new FileInputStream(_resultPath + File.separator + "random.state");
 				randomObjectInputStream = new ObjectInputStream(randomFileInputStream);
 				ExtraMath.random = (MTRandom) randomObjectInputStream.readObject();
 				LogFile.writeLogAlways("Read in random number generator.");
@@ -829,7 +835,7 @@ public class Simulator {
 
 			System.out.println("\t done");
 		} catch (Exception e) {
-			LogFile.writeLog("Error in Simulator.creatSolvers(): " + e);
+			LogFile.writeLogAlways("Error in Simulator.creatSolvers(): " + e);
 		}
 	}
 
@@ -952,6 +958,7 @@ public class Simulator {
 	public void recreateSpecies() throws Exception {
 		int spIndex;
 		SpecialisedAgent progenitor;
+		boolean isCreatedByDivision=false;
 
 		// Initialise a parser of the XML agent file
 		XMLParser simulationRoot = agentFile.getChildParser("simulation");
@@ -980,7 +987,7 @@ public class Simulator {
 
 			progenitor = speciesList.get(spIndex).getProgenitor();
 			for (String data : allAgentData) {
-				progenitor.sendNewAgent().initFromResultFile(this, data.split(","), checkAgentBirth());
+				progenitor.sendNewAgent().initFromResultFile(this, data.split(","), isCreatedByDivision);
 			}
 
 			LogFile.writeLog(
@@ -995,7 +1002,7 @@ public class Simulator {
 	 * Introduces a new agent to the simulation, initialises the specified
 	 * birthday and initial area parameters
 	 */
-	public boolean checkAgentBirth() {
+	public void checkAgentBirth() {
 		int spIndex;
 		boolean creatingAgents = false;
 		boolean isCreatedByDivision = false;
@@ -1023,8 +1030,7 @@ public class Simulator {
 		}
 		if (creatingAgents)
 			agentGrid.relaxGrid();
-		return isCreatedByDivision;
-	}
+		}
 
 	/**
 	 * \brief Creates a specified number of agents within a specified area of
@@ -1042,13 +1048,16 @@ public class Simulator {
 	 *            The index of this species in the simulation dictionary
 	 * @return A boolean noting whether any agents have been created
 	 */
+	
 	public Boolean oneTimeAttachmentAgentBirth(XMLParser aSpRoot, int spIndex, boolean isCreatedByDivision) {
 		Boolean creatingAgents = false;
 		for (XMLParser anArea : aSpRoot.getChildrenParsers("initArea"))
 			if (SimTimer.isDuringNextStep(anArea.getParamTime("birthday"))) {
 				speciesList.get(spIndex).createPop(aSpRoot, anArea, isCreatedByDivision);
 				creatingAgents = true;
+				System.out.println("creatingAgents is: "+ creatingAgents);	
 			}
+		
 		return creatingAgents;
 	}
 
@@ -1528,5 +1537,31 @@ public class Simulator {
 	public String getResultPath() {
 		return _resultPath;
 	}
-
+	
+	public boolean getUseAgentFile(){
+		return useAgentFile;
+	}
+	public void addPlasmidToGlobalList(String name) {
+		boolean isPlasmidAlreadyAdded = false;
+		if (allPlasmidList.isEmpty()) {
+			allPlasmidList.add(name);
+		} 
+		else {
+			for (int i = 0; i < allPlasmidList.size(); i++) {
+				if (allPlasmidList.get(i).equals(name)) {
+					isPlasmidAlreadyAdded = true;
+					break;
+				}
+			}
+			if (!isPlasmidAlreadyAdded) {
+				allPlasmidList.add(name);
+			}
+		}
+	}
+	//return number of different plasmids in the system
+	public int numberOfDifferentPlasmids(){
+		
+		return allPlasmidList.size();
+	}
+	
 }

@@ -262,6 +262,7 @@ public class Species implements Serializable
 			}
 			else
 				_progenitor.createNewAgent(isCreatedByDivision);
+				
 		
 		LogFile.writeLog(howMany+" agents of species "+speciesName+" for one-time attachment successfully created");
 		if ( _progenitor instanceof PlasmidBac )

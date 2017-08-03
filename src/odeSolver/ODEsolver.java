@@ -256,7 +256,7 @@ public abstract class ODEsolver
 				}
 				else
 					break;
-				LogFile.writeLog("error = "+_error+", rtol = "+rtol+", h = "+_h);
+				LogFile.writeLogAlways("error = "+_error+", rtol = "+rtol+", h = "+_h);
 			} // End of `while ( true )`
 			/*
 			 * If there were no failures compute a new h. We use the same
