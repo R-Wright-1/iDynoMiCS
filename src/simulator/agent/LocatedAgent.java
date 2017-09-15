@@ -205,8 +205,6 @@ public abstract class LocatedAgent extends ActiveAgent implements Cloneable
 	public void initFromProtocolFile(Simulator aSim, XMLParser xmlMarkUp) 
 	{	
 		super.initFromProtocolFile(aSim, xmlMarkUp);
-		//jan: is this used in addition to Species.createPop() calling getDivRadius()?
-		// couldn't find getDivRadius() to be called in Species.createPop()
 		_myDivRadius = getDivRadius();
 		_myDeathRadius = getDeathRadius();
 	}
@@ -255,14 +253,13 @@ public abstract class LocatedAgent extends ActiveAgent implements Cloneable
 		 */
 		_radius      = Double.parseDouble(singleAgentData[iDataStart+3]);
 		_totalRadius = Double.parseDouble(singleAgentData[iDataStart+4]);
-		/*
-		 * These are randomly generated.
-		 */
 		
+		/*
+		 * These have to be read in rather than randomly generated for proper restarts
+		 */
 		_myDivRadius = Double.parseDouble(singleAgentData[iDataStart+5]);
 		_myDeathRadius = Double.parseDouble(singleAgentData[iDataStart+6]);
-		//_myDivRadius = getDivRadius();
-		//_myDeathRadius = getDeathRadius();
+		
 		/*
 		 * Now go up the hierarchy with the rest of the data.
 		 */

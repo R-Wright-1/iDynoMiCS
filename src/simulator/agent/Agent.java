@@ -16,6 +16,7 @@ import java.util.BitSet;
 
 import idyno.SimTimer;
 import simulator.Simulator;
+import simulator.agent.zoo.PlasmidBac;
 import utils.LogFile;
 import utils.XMLParser;
 
@@ -59,6 +60,12 @@ public abstract class Agent implements Cloneable
 	protected int        _family     = 0;
 	
 	/**
+	 * For use with plasmids, the name of the plasmid host is set for each individual
+	 * Necessary for grouping all agents that host a particular (set) of plasmids in the agent_state file
+	 */
+	private String _hostName;
+	
+	/**
 	 * Integer noting the next family that any newly created agent will belong
 	 * to.
 	 */
@@ -92,7 +99,7 @@ public abstract class Agent implements Cloneable
 	public void initFromProtocolFile(Simulator aSimulator,
 													XMLParser aSpeciesRoot)
 	{
-		
+		_hostName = aSpeciesRoot.getName();
 	}
 	
 	/**
@@ -208,8 +215,13 @@ public abstract class Agent implements Cloneable
 	 */
 	public StringBuffer writeOutput()
 	{
-		return new StringBuffer(
-						_family+","+_genealogy+","+_generation+","+_birthday);
+		// TODO: read this flag from protocol file
+		boolean writeGenealogy = false;
+		if (writeGenealogy) {
+		return new StringBuffer(_family+","+_genealogy+","+_generation+","+_birthday);
+		} else {
+		return new StringBuffer(_family+","+"0"+","+_generation+","+_birthday);
+		}
 	}
 	
 	/**
@@ -288,5 +300,13 @@ public abstract class Agent implements Cloneable
 	public int getGeneration()
 	{
 		return this._generation;
+	}
+	
+	public String getHostName(){
+		return _hostName;
+	}
+
+	public void setHostName(PlasmidBac aTarget){
+		_hostName = aTarget.getName();
 	}
 }

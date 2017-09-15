@@ -145,15 +145,17 @@ public class PlasmidBacParam extends BactEPSParam
 	 * 
 	 * @param name Plasmid species name.
 	 */
-	public void addPotentialPlasmidName(String name)
+	public void addPotentialPlasmidName(Plasmid aPlasmid)
 	{
-		if ( ! potentialPlasmids.contains(name) ){
-			potentialPlasmids.add(name);
-			simulator.addPlasmidToGlobalList(name);
+		if ( ! potentialPlasmids.contains(aPlasmid.getName()) ){
+			potentialPlasmids.add(aPlasmid.getName());
+			simulator.addPlasmidToGlobalList(aPlasmid);
 		}
+		/* for debugging
 		for (int i =0;i<potentialPlasmids.size();i++)
 		{
 			LogFile.writeLog("potential plasmids: " + potentialPlasmids.get(i));
 		}
+		*/
 	}
 }

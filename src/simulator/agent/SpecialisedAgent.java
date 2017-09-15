@@ -31,6 +31,8 @@ public abstract class SpecialisedAgent extends Agent implements HasSpecies, Clon
 	 */
 	protected Species        _species;
 	
+	private Simulator simulator;
+	
 	/**
 	 * Integer index to that species within the simulation dictionary
 	 */
@@ -79,6 +81,7 @@ public abstract class SpecialisedAgent extends Agent implements HasSpecies, Clon
 	@Override
 	public void initFromProtocolFile(Simulator aSim, XMLParser aSpeciesRoot) 
 	{
+		simulator = aSim;
 		try 
 		{
 			// Create the agent object
@@ -202,6 +205,15 @@ public abstract class SpecialisedAgent extends Agent implements HasSpecies, Clon
 	{
 		_species = aSpecies;
 		speciesIndex = aSpecies.speciesIndex;
+	}
+	
+	public void setNewSpecies(SpecialisedAgent aTarget, String newName){	
+		for(Species species : simulator.speciesList)
+			if ( species.getSpeciesName().equals(newName)){
+				_species.notifyDeath();
+				aTarget._species = species;
+				aTarget._species.notifyBirth();
+			}
 	}
 
 	/**

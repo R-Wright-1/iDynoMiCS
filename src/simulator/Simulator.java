@@ -24,6 +24,8 @@ import idyno.Idynomics;
 import idyno.SimTimer;
 import povray.PovRayWriter;
 import simulator.agent.*;
+import simulator.agent.zoo.Plasmid;
+import simulator.agent.zoo.PlasmidBac;
 import simulator.diffusionSolver.*;
 import simulator.geometry.*;
 import simulator.reaction.*;
@@ -237,14 +239,32 @@ public class Simulator {
 
 	/**
 	 * List of plasmid carriage information, if creating a MultiEpisome
-	 * simulation.
+	 * simulation. Not used for Plasmid.
 	 */
 	public ArrayList<String> plasmidList = new ArrayList<String>();
+	
 	/**
-	 * List of different plasmids that are in the system
+	 * List containing one representative plasmid of each type (duplicates are not stored)
 	 */
-	private static LinkedList<String> allPlasmidList=new LinkedList<>(); 
-
+	private static LinkedList<Plasmid> allPlasmidList=new LinkedList<>(); 
+	
+	/**
+	 * Stores one type of plasmid by name and the number of potential donors in the system,
+	 * used in chemostats only.
+	 */
+	private HashMap<String, Integer> plasmidAndNumberOfDonors = new HashMap<>();
+	
+	/**
+	 * As above but for recipients
+	 */
+	private HashMap<String, Integer> plasmidAndNumberOfRecipients = new HashMap<>();
+	
+	/**
+	 * Here we store the name of the plasmid that can be transferred and a 
+	 * list of recipients because we need to randomly pick recipients (need access to them).
+	 */
+	private HashMap<String, LinkedList<PlasmidBac>> recipientsList  = new HashMap<>();
+	
 	/**
 	 * List of all the scan speeds of all plasmids, if creating a MultiEpisome
 	 * simulation.
@@ -390,7 +410,11 @@ public class Simulator {
 			// sonia: 25-08-09
 			if (isFluctEnv)
 				FluctEnv.setEnvCycle(FluctEnv.envNameList.indexOf(FluctEnv.envStatus));
-
+			
+			// adds recipients and donors to different lists once per timestep
+			findCompatibleRecipients();
+			donors();
+			
 			// Perform agent stepping.
 			LogFile.chronoMessageIn("Simulating agents");
 			agentGrid.step(this);
@@ -1541,27 +1565,77 @@ public class Simulator {
 	public boolean getUseAgentFile(){
 		return useAgentFile;
 	}
-	public void addPlasmidToGlobalList(String name) {
+	
+	////////////////////////////////// Plasmid stuff ////////////////////////
+	
+	public void addPlasmidToGlobalList(Plasmid aPlasmid) {
 		boolean isPlasmidAlreadyAdded = false;
 		if (allPlasmidList.isEmpty()) {
-			allPlasmidList.add(name);
+			allPlasmidList.add(aPlasmid);
 		} 
 		else {
 			for (int i = 0; i < allPlasmidList.size(); i++) {
-				if (allPlasmidList.get(i).equals(name)) {
+				if (allPlasmidList.get(i).equals(aPlasmid)) {
 					isPlasmidAlreadyAdded = true;
 					break;
 				}
 			}
 			if (!isPlasmidAlreadyAdded) {
-				allPlasmidList.add(name);
+				allPlasmidList.add(aPlasmid);
 			}
 		}
 	}
+	
 	//return number of different plasmids in the system
 	public int numberOfDifferentPlasmids(){
 		
 		return allPlasmidList.size();
 	}
 	
+	private void donors() {
+		for (Plasmid plasmid : allPlasmidList) {
+			int number = 0;
+			for (SpecialisedAgent aSA : agentGrid.agentList) {
+				if (aSA instanceof PlasmidBac) 
+					for (Plasmid aPl : ((PlasmidBac) aSA).getPlasmidsHosted()) 
+						if (aPl.getName().equals(plasmid.getName()))
+							number++;
+				plasmidAndNumberOfDonors.put(plasmid.getName(), number);
+			}
+		}
+	}
+
+	private void findCompatibleRecipients() {
+		for (Plasmid plasmid : allPlasmidList) {
+			int number = 0;
+			LinkedList<PlasmidBac> listOfRec = new LinkedList<>();
+			for (SpecialisedAgent aSA : agentGrid.agentList) 
+				if (aSA instanceof PlasmidBac) {
+					if (plasmid.isCompatible((PlasmidBac) aSA)){
+						listOfRec.add((PlasmidBac) aSA);
+						number++;
+					}
+			}
+			plasmidAndNumberOfRecipients.put(plasmid.getName(), number);
+			recipientsList.put(plasmid.getName(), listOfRec);
+
+		}
+	}
+	
+	public int getNumDonors(String plasmidName){
+		return plasmidAndNumberOfDonors.get(plasmidName);
+	}
+	
+	public int getNumRecipients(String plasmidName){
+		return plasmidAndNumberOfRecipients.get(plasmidName);
+	}
+	
+	public LinkedList<PlasmidBac> getRecList(Plasmid plasmid){
+		
+		return recipientsList.get(plasmid.getName());
+	}
+	
+	public LinkedList<Plasmid> getDifferentPlasmids(){
+		return allPlasmidList;
+	}
 }

@@ -1039,4 +1039,7 @@ public class Species implements Serializable
 		} while ( domain.testCrossedBoundary(cc) != null );
 		 
 	}
+	public String getSpeciesName(){
+		return speciesName;
+	}
 }

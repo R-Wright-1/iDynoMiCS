@@ -6,9 +6,14 @@ import java.awt.Color;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.PrimitiveIterator.OfDouble;
+
+import org.omg.CORBA.PRIVATE_MEMBER;
 
 import simulator.Simulator;
 import simulator.agent.LocatedAgent;
@@ -18,6 +23,7 @@ import simulator.geometry.ContinuousVector;
 import utils.ExtraMath;
 import utils.LogFile;
 import utils.XMLParser;
+
 
 /**
  * \brief Bacterium class that can host a number of Plasmids of differing
@@ -45,17 +51,11 @@ public class PlasmidBac extends BactEPS {
 	
 	private Simulator simulator;
 
-	/**
-	 * All agents of type Bacterium to be collected once per timestep for use in
-	 * chemostats only For efficiency and for preventing newly born agents to
-	 * conjugate Only one instance of the fields below shared by all PlasmidBac
-	 */
-	private static LinkedList<Bacterium> _allBact = new LinkedList<Bacterium>();
 	private static int _now;
-	private static int _allCellsButMe;
-	public static int _numTotTry; // number of total attempted transfers in
-									// population
-	public static int _numTotTrans; // number of total transfers in population
+	// number of total attempted transfers in population
+	public static int _numTotTry;
+	// number of total transfers in population
+	public static int _numTotTrans;
 	protected double _tLost;
 
 	/*************************************************************************
@@ -180,6 +180,16 @@ public class PlasmidBac extends BactEPS {
 		/*
 		 * Create the new instance and update the lineage.
 		 */
+		//LogFile.writeLog("growth " + getNetGrowth());
+		
+		/*	double deltaBiomass = getParticleMass(0);
+		double growthRate = getNetGrowth();
+		double specificGrowthRate = growthRate/deltaBiomass;
+		*/
+		//LogFile.writeLog("SpecificGrowthRate " + specificGrowthRate);
+		
+		double specificGrowthRate = getNetGrowth()/getParticleMass(0);
+		
 		PlasmidBac baby = sendNewAgent();
 		
 		this._myDivRadius = getDivRadius();
@@ -218,11 +228,13 @@ public class PlasmidBac extends BactEPS {
 		 */
 		for (int i = 0; i < this._plasmidHosted.size(); i++){
 			if (ExtraMath.getUniRandDbl() < 0.5)
-				this._plasmidHosted.get(i).applySegregation();
+				this._plasmidHosted.get(i).applySegregation(specificGrowthRate);
 			else
-				baby._plasmidHosted.get(i).applySegregation();
+				baby._plasmidHosted.get(i).applySegregation(specificGrowthRate);
 			recordGenealogy(this._plasmidHosted.get(i), baby._plasmidHosted.get(i));
 		}
+		baby.checkMissingPlasmid();
+		this.checkMissingPlasmid();
 	}
 
 	/**
@@ -305,43 +317,39 @@ public class PlasmidBac extends BactEPS {
 
 	@Override
 	public void internalStep() {
-		// make this list when the first agent is called, regardless of whether
-		// it has a plasmid or not
-		// this ensures the list does not contain any newborns
-		// but only if chemostat
-		if (Simulator.isChemostat)
-			makeListAllBacteria();
+		/*
+		 * First the plasmid stuff
+		 */
+		// Now checking of lost plasmids occurs in makeKid straigth after division
+		//checkMissingPlasmid();
+		if (Simulator.isChemostat) {
+			chemostatConjugation();
+		} else {
+			biofilmConjugation();
+		}
 
 		/*
-		 * Check if any plasmids have illegal copy numbers.
-		 */
-		checkMissingPlasmid();
-		/*
-		 * BactEPS internalStep methods.
+		 * Now the inherited BactEPS internalStep methods
 		 */
 		grow();
 		updateSize();
 		manageEPS();
-		if (willDivide()){
+		if (willDivide())
 			divide();
-		}
+		
 		if (willDie())
 			die(true);
-		/*
-		 * Now try conjugating.
-		 */
-		conjugate();
 	}
 
 	/**
-	 * \brief Remove any plasmids whose presence is no longer legal.
+	 * \brief Remove any plasmids with copy number < 1
 	 */
 	protected void checkMissingPlasmid() {
 		int nIter = this._plasmidHosted.size();
 		Plasmid aPlasmid;
 		for (int i = 0; i < nIter; i++) {
 			aPlasmid = this._plasmidHosted.removeFirst();
-			if (aPlasmid.getCopyNumber() <= 0)
+			if (aPlasmid.getCopyNumber() < 1)
 				this.killPlasmid(aPlasmid);
 			else
 				this._plasmidHosted.addLast(aPlasmid);
@@ -425,7 +433,24 @@ public class PlasmidBac extends BactEPS {
 	 */
 	private void killPlasmid(Plasmid aPlasmid) {
 		aPlasmid.die();
-		LogFile.writeLog("Plasmid " + aPlasmid.sendName() + " lost from " + this.sendName());
+		//LogFile.writeLog("Plasmid " + aPlasmid.sendName() + " lost from " + this.sendName());
+		
+		String hostName = this.getHostName();
+		String[] plasNames = hostName.split("_");
+		String newName = new String();
+		LinkedList<String> names = new LinkedList(Arrays.asList(plasNames));
+		
+		for ( int i=1; i<names.size(); i++){
+			if(aPlasmid.getName().equals(names.get(i))){
+				names.remove(i);
+			}
+		}
+		newName+=names.get(0);
+		for (int i=1;i<names.size();i++){
+			newName +="_"+names.get(i); 
+		}
+		//LogFile.writeLog("new name is: " + newName);
+		setNewSpecies(this,newName);
 		this._tLost = SimTimer.getCurrentTime();
 		for (PlasmidMemory memory : _plasmidMemories) {
 			if (memory.getPlasmidID() == aPlasmid.getPlasmidID()) {
@@ -433,6 +458,8 @@ public class PlasmidBac extends BactEPS {
 				break;
 			}
 		}
+		
+		//LogFile.writeLog("Plasmid " + aPlasmid.sendName() + " lost from " + hostName+" Now: " + this.getHostName());
 	}
 
 	/**
@@ -477,16 +504,73 @@ public class PlasmidBac extends BactEPS {
 	}
 
 	/**
-	 * \brief Ask all your Plasmids to conjugate, if they are ready.
+	 * This function is only called for chemostat simulations where collisions
+	 * are random and we use a kind of population level method - bad, but the
+	 * only other option is to fit the IBM to the ODE model, which is also bad
 	 */
-	protected void conjugate() {
-		/*
-		 * No point continuing if there are no plasmids in this host.
-		 */
+	protected void doTheChemostatConjugation() {
+
+		for (Plasmid aPlasmid : simulator.getDifferentPlasmids()) {
+			// TODO: add checks for lag times (_tLastDonated and _tReceived):
+			// aPlasmid.isReadyToConjugate()
+			// and consider scaled tone
+			// probToScreen *= this.getScaledTone();
+
+			double chemostatVol = _species.domain.length_X * _species.domain.length_Y * _species.domain.length_Z;
+			int numOfRec = simulator.getNumRecipients(aPlasmid.getName());
+			double densityOfRecipients = numOfRec / chemostatVol;
+			double dt = SimTimer.getCurrentTimeStep();
+			double numOfDonors = simulator.getNumDonors(aPlasmid.getName());
+			double collisionCoeficient = aPlasmid.getSpeciesParam().collisionCoeff;
+			double cellsScreen = collisionCoeficient * numOfDonors * densityOfRecipients * dt + aPlasmid._testTally;
+			// need to save remainder
+			aPlasmid._testTally = (cellsScreen - Math.floor(cellsScreen));
+
+			LinkedList<PlasmidBac> listOfAllRecipients = simulator.getRecList(aPlasmid);
+			LinkedList<PlasmidBac> listPotentialRecipients = new LinkedList<PlasmidBac>();
+			PlasmidBac potentialRecipient;
+			int randyInt;
+			for (int i = 1; i <= cellsScreen; i++) {
+				randyInt = ExtraMath.getUniRandInt(numOfRec);
+				potentialRecipient = listOfAllRecipients.get(randyInt);
+				listPotentialRecipients.add(potentialRecipient);
+			}
+
+			for(int i=0;i<listPotentialRecipients.size();i++){
+
+				PlasmidBac transconjugant = listPotentialRecipients.get(i);
+
+				if (!sendPlasmid(aPlasmid, transconjugant))
+					continue;
+
+				listOfAllRecipients.remove(transconjugant);
+
+				int instances = 0;
+				for (int j = i + 1; j < listPotentialRecipients.size(); j++) {
+					if (listPotentialRecipients.get(j).equals(transconjugant)) {
+						instances++;
+						listPotentialRecipients.remove(j);
+						j--;
+					}
+				}
+
+				for (int j = 0; j < instances; j++) {
+					randyInt = ExtraMath.getUniRandInt(listOfAllRecipients.size());
+					potentialRecipient = listOfAllRecipients.get(randyInt);
+					listPotentialRecipients.add(potentialRecipient);
+				}
+
+			}
+		}
+	}
+
+	
+	protected void biofilmConjugation(){
+		
 		if (this._plasmidHosted.isEmpty())
 			return;
-		/*
-		 * Build a neighbourhood including only non-self Bacteria. The methods
+		
+		/* * Build a neighbourhood including only non-self Bacteria. The methods
 		 * for this differ between chemostat and biofilm simulations: - In the
 		 * biofilm, all non-self Bacteria within reach of the Plasmid's pilus
 		 * should be included. Need to do this for each plasmid as parameters
@@ -496,28 +580,12 @@ public class PlasmidBac extends BactEPS {
 		 * LocatedAgent.pickNeighbour() uses a randomly generated value to pick
 		 * a random Bacterium.
 		 */
+		//LinkedList<Integer> numberOfDonors = new LinkedList<Integer>();
 
 		for (Plasmid aPlasmid : this._plasmidHosted)
-			if (aPlasmid.isReadyToConjugate()) {
-				if (Simulator.isChemostat) {
-					/*
-					 * calculate probability of collision of this donor with
-					 * other PlasmidBac agents, multiply this probability by
-					 * getScaledTone, then work out how many others to attempt
-					 * to conjugate with and put these into potentials
-					 */
-					LinkedList<Bacterium> partners = screenAllPartners(aPlasmid);
-					// was buildNbh(aPlasmid); but need to separate chemostat
-					// from biofilm stuff
-					// screenAllPartners() adds to the _testTally and
-					// tryToSendPlasmid() subtracts
-					// iterate through all partners
-					// instead of calling seachConjugation we only do one line
-					// from searchConjugation (tryToSendPlasmid)
-					for (Bacterium aTarget : partners) {
-						aPlasmid.tryToSendPlasmid(aTarget);
-					}
-				} else { // biofilm branch
+			if (aPlasmid.isReadyToConjugate()) {					
+					
+					// biofilm branch
 					HashMap<Bacterium, Double> potentialRecps = new HashMap<Bacterium, Double>();
 					potentialRecps = buildNbh(aPlasmid, aPlasmid.getPilusRange());
 					// searchConjugation calls
@@ -525,113 +593,25 @@ public class PlasmidBac extends BactEPS {
 					// tryToSendPlasmid() while it canScan()
 					this.searchConjugation(aPlasmid, potentialRecps);
 				}
-			}
-	}
+		}
+	
 
 	/**
-	 * \brief Create a list of all Bacterium agents the first time
-	 * PlasmidBac.screenAllPartners() is called This method is only called in
-	 * chemostat simulations, for biofilms we create a list of neighbours for
-	 * each PlasmidBac individually with buildNbh() The list will contain self,
-	 * so self needs to be skipped in screenAllPartners()
+	 * \brief Ensure chemostat conjugation occurs only once per timestep
 	 */
-	void makeListAllBacteria() {
-		// LogFile.writeLog("_now " +_now + " SimTimer.getCurrentIter() " +
-		// SimTimer.getCurrentIter() );
+	void chemostatConjugation() {
 
 		if (_now != SimTimer.getCurrentIter()) {
 			_now = SimTimer.getCurrentIter();
-			_allBact.clear();
-			_allCellsButMe = 0;
 			_numTotTry = 0;
 			_numTotTrans = 0;
-
-			/*
-			 * Collision rate calculations should not be able to consider
-			 * whether the potentials for conjugation are of the right class
-			 * (PlasmidBac) or not, so include all bacteria, but do not include
-			 * EPS particles because EPS particles only represent EPS, they are
-			 * not proper agents
-			 */
-			for (SpecialisedAgent aSA : _agentGrid.agentList) {
-				if (aSA instanceof Bacterium) {
-					_allCellsButMe++;
-					_allBact.add((Bacterium) aSA);
-				}
-			}
-			_allCellsButMe--;
-			LogFile.writeLog("_agentGrid.agentList.size() " + _agentGrid.agentList.size());
+			doTheChemostatConjugation();
+			//LogFile.writeLog("_agentGrid.agentList.size() " + _agentGrid.agentList.size());
 		} else
 			return;
 	}
 
-	/**
-	 * This function is only called for chemostat simulations where collisions
-	 * are random
-	 * 
-	 * @param aPlasmid
-	 * @return thoseToScreen (other Bacterium agents that are potential
-	 *         conjugation partners)
-	 */
-	protected LinkedList<Bacterium> screenAllPartners(Plasmid aPlasmid) {
-
-		// Work out how many cells a given plasmid donor collides with per time
-		// unit
-		Double tmpCollCoeff = aPlasmid.getSpeciesParam().collisionCoeff;
-
-		// dt is the duration of the time step
-		double dt = SimTimer.getCurrentTimeStep();
-		double chemostatVol = _species.domain.length_X * _species.domain.length_Y * _species.domain.length_Z;
-		// not a 'proper' probability as could be larger than one, we deal with
-		// that below
-		double probToScreen = tmpCollCoeff * _allCellsButMe * dt / chemostatVol;
-		// scale by growth tone of this donor
-		probToScreen *= this.getScaledTone();
-		// LogFile.writeLog("tmpCollCoeff: " + tmpCollCoeff + " allCellsButMe: "
-		// + _allCellsButMe);
-		// LogFile.writeLog("dt: " + dt + " chemostatVol: " + chemostatVol +
-		// "probToScreen: " + probToScreen);
-
-		// _testTally accumulates remainders from past time steps, so we add
-		// probToScreen
-		// in tryToSendPlasmid(), _testTally is decremented every attempt to
-		// send a plasmid, so don't do it here
-		aPlasmid._testTally += probToScreen;
-		int numScreen = (int) Math.floor(aPlasmid._testTally);
-
-		// int numScreen = (int) Math.floor(probToScreen + aPlasmid._testTally);
-		// // _testTally accumulates remainders from past time steps
-		// aPlasmid._testTally = probToScreen + aPlasmid._testTally - numScreen;
-		// // the new remainder is saved in _testTally
-
-		/*
-		 * int numScreen = (int) Math.floor(probToScreen); double remainder =
-		 * probToScreen - numScreen; double randyDbl =
-		 * ExtraMath.getUniRandDbl(0.0, 1.0); if (randyDbl < remainder) {
-		 * numScreen++; }
-		 */
-
-		// LogFile.writeLog("probToScreen: " + probToScreen + " numScreen: " +
-		// numScreen);
-
-		// randomly pick nScreen bacteria
-		// Note that we use a random number generator that has a very long
-		// period so it is impossible to get duplicate random integers
-		LinkedList<Bacterium> out = new LinkedList<Bacterium>();
-		Bacterium thoseToScreen;
-		int randyInt;
-		int myIndex = _allBact.indexOf(this);
-		for (int i = 0; i < numScreen; i++) {
-			randyInt = ExtraMath.getUniRandInt(_allCellsButMe);
-			while (randyInt == myIndex) // exclude self from thoseToScreen
-				randyInt = ExtraMath.getUniRandInt(_allCellsButMe);
-			thoseToScreen = _allBact.get(randyInt);
-			out.add(thoseToScreen);
-		}
-
-		return out;
-	}
-
+	// need to update comment. Method screenAllPartners() does not exsist anymore, 
 	/**
 	 * \brief This is used only for biofilms, whereas in chemostats,
 	 * screenAllPartners() is used Add all non-self Bacteria within reach of
@@ -781,7 +761,7 @@ public class PlasmidBac extends BactEPS {
 		 */
 		while (aPlasmid.canScan()) {
 			LogFile.writeLog("try to search conjugation");
-			aPlasmid.tryToSendPlasmid(pickPotentialRecipient(potentials));
+			sendPlasmid(aPlasmid, pickPotentialRecipient(potentials));
 		}
 	}
 
@@ -867,7 +847,7 @@ public class PlasmidBac extends BactEPS {
 				continue;
 			}
 			LogFile.writeLog("\tAdded!");
-			getSpeciesParam().addPotentialPlasmidName(aSpecies.speciesName);
+			getSpeciesParam().addPotentialPlasmidName((Plasmid) aSpecies.getProgenitor());
 		}
 	}
 
@@ -937,14 +917,17 @@ public class PlasmidBac extends BactEPS {
 		int numHT = -2;
 		int numVT = -2;
 		StringBuffer genealogy = new StringBuffer("-2");
-		// Plasmid genealogy needs to bee added to printing once it works properly
 		if (!_plasmidHosted.isEmpty()) {
 			for (Plasmid aPlasmid : _plasmidHosted) {
 				plasID = aPlasmid.getPlasmidID();
 				// birthDay is the time the plasmid is created, eg, due to entry or cell division
 				//tEntry = aPlasmid.getBirthday();
 				tEntry = aPlasmid._tReceived;
-				genealogy = aPlasmid.getGenealogy();
+				// TODO: read this flag from protocol file
+				boolean writeGenealogy = false;
+				if (writeGenealogy) {
+					genealogy = aPlasmid.getGenealogy();
+				}
 				numHT = aPlasmid.getNumHT();
 				numVT = aPlasmid.getGeneration();
 				tempString.append("," + plasID + "," + tEntry + "," + genealogy + "," + numHT + "," + numVT);
@@ -977,6 +960,24 @@ public class PlasmidBac extends BactEPS {
 		// TODO
 		return out.toString();
 	}
+	
+	/**
+	 * For use by PlasmidBac to change name of the PlasmidBac when it gains/loses a plasmid
+	 * Required for grouping of agents containing the same (set of) plasmid in agent_state file
+	 * Makes bacterium belong to different species than it originally belonged 
+	 * We don't check but assume that old and new species are of the same class
+	 */
+	@Override
+	public void setNewSpecies(SpecialisedAgent aTarget, String newName){
+		for(Species species : simulator.speciesList)
+			if ( species.getSpeciesName().equals(newName)){
+				_species.notifyDeath();
+				_species = species;
+				_species.notifyBirth();
+				
+				aTarget.setHostName((PlasmidBac) aTarget);
+			}
+	}
 
 	@Override
 	public Color getColor() {
@@ -1001,5 +1002,31 @@ public class PlasmidBac extends BactEPS {
 		_plasmidHosted.add(aPlasmidToAdd);
 	}
 	
+	/**
+	 * Renames the host name or the target cell if a plasmid was successfully sent to it 
+	 * 
+	 * @param aPlasmid
+	 * @param aTarget
+	 */
+	public boolean sendPlasmid(Plasmid aPlasmid, Bacterium aTarget) {
+		boolean plasmidDonated = aPlasmid.tryToSendPlasmid(aTarget);
+
+		if (plasmidDonated) {
+			String hostName = aTarget.getHostName();
+			String[] plasNames = hostName.split("_");
+			// the very first element of array is name of bacterium, not plasmid
+			String newName = plasNames[0];
+			//the first element of array is set to be the name of new plasmid
+			plasNames[0] = aPlasmid.getName();
+			LinkedList<String> plasListAlph = new LinkedList<>(Arrays.asList(plasNames));
+			plasListAlph.sort(Comparator.naturalOrder());
+			for (String name : plasListAlph)
+				newName +="_"+name; 
+			
+			setNewSpecies(aTarget,newName);
+			
+		}
+		return plasmidDonated;
+	}	
 
 }

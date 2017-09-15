@@ -633,7 +633,7 @@ public class ReactionGrowthFitness extends Reaction{
 
 						case "constantCost":
 							plTotalCosts.add(initialCost);
-							LogFile.writeLog("initialCost: "+ initialCost );
+							//LogFile.writeLog("initialCost: "+ initialCost );
 							break;
 						default:
 							plTotalCosts.add(initialCost);

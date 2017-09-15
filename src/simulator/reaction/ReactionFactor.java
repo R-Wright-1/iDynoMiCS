@@ -238,6 +238,7 @@ public class ReactionFactor extends Reaction
 	public void computeSpecificGrowthRate(ActiveAgent anAgent)
 	{
 		// Build the array of concentration seen by the agent
+		System.out.println("computeSpecificGrowthRate in ReactionFactor");
 		computeSpecificGrowthRate(readConcentrationSeen(anAgent, _soluteList), anAgent);
 	}
 

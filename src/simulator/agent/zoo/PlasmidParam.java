@@ -251,8 +251,8 @@ public class PlasmidParam extends ActiveParam
 	
 	public boolean isHostCompatible(PlasmidBac targetRecipient)
 	{
-		LogFile.writeLog("targetRecipient.getName() " + targetRecipient.getName());
-		LogFile.writeLog("hostCompatibilityMarkers " + hostCompatibilityMarkers.toString());
+		//LogFile.writeLog("targetRecipient.getName() " + targetRecipient.getName());
+		//LogFile.writeLog("hostCompatibilityMarkers " + hostCompatibilityMarkers.toString());
 		if ( ! hostCompatibilityMarkers.contains(targetRecipient.getName()) )
 			return false;
 		return true;    

@@ -289,6 +289,7 @@ public class ReactionFactorWithConstant extends Reaction
 	@Override
 	public void computeSpecificGrowthRate(Double[] s)
 	{
+		System.out.println("computeSpecificGrowthRate in ReactionFactorWithConstant");
 		_specRate = _muMax;
 
 		for (int iFactor = 0; iFactor<_soluteFactor.length; iFactor++)

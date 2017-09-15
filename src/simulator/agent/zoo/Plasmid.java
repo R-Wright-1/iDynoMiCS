@@ -2,7 +2,10 @@ package simulator.agent.zoo;
 
 import java.util.ArrayList;
 
+import com.sun.org.apache.bcel.internal.generic.LNEG;
+
 import idyno.SimTimer;
+import simulator.Simulator;
 import simulator.agent.InfoAgent;
 import simulator.agent.LocatedAgent;
 import utils.ExtraMath;
@@ -172,7 +175,6 @@ public class Plasmid extends InfoAgent
 	public void init()
 	{	
 		this._generation = 0;
-		
 		this._genealogy.append("0");
 		this._copyNumber = getSpeciesParam().copyNumDefault;
 		// this._tLastDonated = -Double.MAX_VALUE;
@@ -334,6 +336,9 @@ public class Plasmid extends InfoAgent
 		 * recently.
 		 */
 		double now = SimTimer.getCurrentTime();
+		if(_tLastDonated==-1){
+			return true;
+		}
 		if ( now < this._tLastDonated + getSpeciesParam().donationLag )
 			return false;
 		return ( now >= this._tReceived + getSpeciesParam().receptionLag );
@@ -360,27 +365,29 @@ public class Plasmid extends InfoAgent
 	 * 
 	 * @param aTarget LocatedAgent that may receive a copy of this Plasmid.
 	 */
-	public void tryToSendPlasmid(LocatedAgent aTarget)
+	public boolean tryToSendPlasmid(LocatedAgent aTarget)
 	{
+		boolean conjugationIsSuccessful = false;
 		// tryToSendPlasmid() is only called when conjugating (conjugate() and searchConjugation())
 		// static reference for counting number of tries
 		PlasmidBac._numTotTry++;
 		/*
 		 * We're looking at a target, so decrement the _testTally to reflect this.
 		 */
-		this._testTally -= 1.0; // decremented in biofilm or chemostat simulations
+		if ( ! Simulator.isChemostat )
+			this._testTally -= 1.0; // decremented in biofilm 
 		/*
 		 * Unless this (aTarget) is a PlasmidBac, there can be no donation.
 		 */
 		if ( ! ( aTarget instanceof PlasmidBac) )
-			return;
+			return conjugationIsSuccessful;
 		PlasmidBac aPB = (PlasmidBac) aTarget;
 		/*
 		 * If the target is incompatible, or this plasmid fails a proficiency
 		 * test, there is no donation.
 		 */
 		if ( ! ( this.isCompatible(aPB) &&  this.testProficiency() ) )
-			return;	
+			return conjugationIsSuccessful;	
 		/*
 		 * Donation is successful, so make the new plasmid, give it to the
 		 * target, and update the old plasmid.
@@ -405,6 +412,8 @@ public class Plasmid extends InfoAgent
 		{
 			LogFile.writeError(e, "Plasmid.tryToSendPlasmid()");
 		}
+		conjugationIsSuccessful = true;
+		return conjugationIsSuccessful;
 	}
 	
 	/**
@@ -434,14 +443,22 @@ public class Plasmid extends InfoAgent
 	 * \brief This Plasmid should have been recently created through cell
 	 * division of its host: check to see if it has been lost in the process.
 	 */
-	public void applySegregation()
+	public void applySegregation(double specificGrowthRate)
 	{
-		if ( ExtraMath.getUniRandDbl() < getSpeciesParam().lossProbability ){
+		double divisionTime = Math.log(2)/specificGrowthRate;
+		if(divisionTime<SimTimer.getCurrentTimeStep()){
+			LogFile.writeLogAlways("Warning! Timestep > doubling time, choose smaller timestep");
+			divisionTime = SimTimer.getCurrentTimeStep();
+		}
+		
+		// divide by 0.5 (because the probability of cell to loose a plasmid after division is 0.5) 
+		// getSpeciesParam().lossProbability is actually not loss probability, but tau value from ODE model
+		double lossProbability = getSpeciesParam().lossProbability*divisionTime/0.5;
+		if ( ExtraMath.getUniRandDbl() < lossProbability ){
 			this._copyNumber = 0;
 			this._tLost = SimTimer.getCurrentTime();
 		}
 	}
-	// undo
 	public StringBuffer getGenealogy(){
 		return _genealogy;
 	}
