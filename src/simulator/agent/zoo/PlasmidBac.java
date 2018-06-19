@@ -837,16 +837,16 @@ public class PlasmidBac extends BactEPS {
 	 *            The Simulator this is running in.
 	 */
 	private void collectPlasmidSpeciesNames(Simulator aSim) {
-		LogFile.writeLog("This is " + aSim.speciesDic.get(this.speciesIndex));
+		LogFile.writeLog("collectPlasmidSpeciesNames for PlasmidBac " + aSim.speciesDic.get(this.speciesIndex));
 		for (Species aSpecies : aSim.speciesList) {
 			if (!(aSpecies.getProgenitor() instanceof Plasmid))
 				continue;
-			LogFile.writeLog("Looking at " + aSpecies.speciesName);
+			LogFile.writeLog("Found plasmid " + aSpecies.speciesName);
 			if (!((Plasmid) aSpecies.getProgenitor()).isHostCompatible(this)) {
 				LogFile.writeLog("\tHost not compatible");
 				continue;
 			}
-			LogFile.writeLog("\tAdded!");
+			LogFile.writeLog("\tHost compatible, adding plasmid to list of potential plasmids");
 			getSpeciesParam().addPotentialPlasmidName((Plasmid) aSpecies.getProgenitor());
 		}
 	}
@@ -1003,7 +1003,9 @@ public class PlasmidBac extends BactEPS {
 	}
 	
 	/**
-	 * Renames the host name or the target cell if a plasmid was successfully sent to it 
+	 * Renames the host name of the target cell if a plasmid was successfully sent to it
+	 * since the recipient becomes a donor
+	 * doesn't work, just renames, but doesn't change the register in Species
 	 * 
 	 * @param aPlasmid
 	 * @param aTarget
@@ -1012,12 +1014,14 @@ public class PlasmidBac extends BactEPS {
 		boolean plasmidDonated = aPlasmid.tryToSendPlasmid(aTarget);
 
 		if (plasmidDonated) {
+			// this can be the host and plasmid name combination, not just the 'hostName'
 			String hostName = aTarget.getHostName();
 			String[] plasNames = hostName.split("_");
 			// the very first element of array is name of bacterium, not plasmid
 			String newName = plasNames[0];
-			//the first element of array is set to be the name of new plasmid
+			//the first element of array is set to be the name of new plasmid being sent
 			plasNames[0] = aPlasmid.getName();
+			// Sort plasmid names alphabetically so that we don't get different names for cells with the same set of plasmids
 			LinkedList<String> plasListAlph = new LinkedList<>(Arrays.asList(plasNames));
 			plasListAlph.sort(Comparator.naturalOrder());
 			for (String name : plasListAlph)

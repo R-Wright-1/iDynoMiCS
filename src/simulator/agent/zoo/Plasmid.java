@@ -162,6 +162,7 @@ public class Plasmid extends InfoAgent
 	public void initAfterConjugation(PlasmidBac aPB)
 	{
 		// compare reset(), this appends _genealogy
+		// "this" is the baby plasmid
 		this._generation = 0;
 		this._copyNumber = getSpeciesParam().copyNumDefault;
 		// this._tLastDonated should be changed in the Donor
@@ -169,6 +170,7 @@ public class Plasmid extends InfoAgent
 		this._testTally = 0.0;
 		this._numHT = 0;
 		this._scanRate = 0.0;
+		//add the baby plasmid into the target cell
 		aPB.addPlasmid(this);
 	}
 	

@@ -466,8 +466,8 @@ public class AgentContainer
 		//nDead += removeAllDead();
 		
 		// OUTPUT THE COUNT STATISTICS
-		LogFile.chronoMessageOut("Agents stepped/dead/born: " + nAgentLastStep + "/"
-				+ nDeath + "/" + nBirth);
+		LogFile.chronoMessageOut("Agents stepped/dead/born: " + nAgentLastStep + "\t"
+				+ nDeath + "\t" + nBirth);
 		LogFile.writeLog("_numTry " + PlasmidBac._numTotTry + "  _numTrans " + PlasmidBac._numTotTrans);
 
 		
